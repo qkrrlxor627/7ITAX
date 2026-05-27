@@ -1,0 +1,31 @@
+### P2P 송금
+POST {{baseUrl}}/transfers/p2p
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "senderCardId": 1,
+  "receiverUserId": 2,
+  "amount": 50000,
+  "description": "점심값"
+}
+
+### 출금 (연동 계좌로 환급)
+POST {{baseUrl}}/transfers/withdraw
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cardId": 1,
+  "targetAccountNo": "0012345678901234",
+  "amount": 100000,
+  "description": "생활비 출금"
+}
+
+### 송금 내역 조회 (기본)
+GET {{baseUrl}}/transfers?page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### 송금 상세 조회
+GET {{baseUrl}}/transfers/1
+Authorization: Bearer {{accessToken}}

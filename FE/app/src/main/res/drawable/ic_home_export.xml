@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="34dp" android:height="34dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- 파일 -->
+    <path android:pathData="M14,2H6C4.9,2 4,2.9 4,4v16c0,1.1 0.9,2 2,2h12c1.1,0 2,-0.9 2,-2V8L14,2z"
+        android:fillColor="#FB6B18"
+        android:alpha="0.2"/>
+    <path android:pathData="M14,2H6C4.9,2 4,2.9 4,4v16c0,1.1 0.9,2 2,2h12c1.1,0 2,-0.9 2,-2V8L14,2z"
+        android:strokeColor="#FB6B18"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"/>
+    <!-- 접힌 모서리 -->
+    <path android:pathData="M14,2v6h6"
+        android:strokeColor="#FB6B18"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"/>
+    <!-- 화살표 (위로 내보내기) -->
+    <path android:pathData="M12,18v-6M9,14l3,-3 3,3"
+        android:strokeColor="#FB6B18"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"/>
+</vector>

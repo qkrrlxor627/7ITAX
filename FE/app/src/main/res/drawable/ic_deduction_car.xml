@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 차체 상단 -->
+    <path
+        android:pathData="M5,11 L7,6 Q7.5,5 8.5,5 L15.5,5 Q16.5,5 17,6 L19,11"
+        android:fillColor="#4A90D9"/>
+    <!-- 차체 하단 -->
+    <path
+        android:pathData="M3,11 L21,11 Q22,11 22,12.5 L22,16 Q22,17 21,17 L3,17 Q2,17 2,16 L2,12.5 Q2,11 3,11Z"
+        android:fillColor="#4A90D9"/>
+    <!-- 창문 구분선 -->
+    <path
+        android:pathData="M12,5.5 L12,11"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.8"
+        android:fillColor="#00000000"/>
+    <!-- 바퀴 -->
+    <path
+        android:pathData="M7,17 A2,2 0 1,0 7,21 A2,2 0 1,0 7,17Z"
+        android:fillColor="#343434"/>
+    <path
+        android:pathData="M17,17 A2,2 0 1,0 17,21 A2,2 0 1,0 17,17Z"
+        android:fillColor="#343434"/>
+    <!-- 헤드라이트 -->
+    <path
+        android:pathData="M4,13 L5.5,13"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <path
+        android:pathData="M18.5,13 L20,13"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+</vector>

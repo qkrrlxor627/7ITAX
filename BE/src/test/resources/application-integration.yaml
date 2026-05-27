@@ -1,0 +1,21 @@
+spring:
+  config:
+    import: optional:classpath:application-local.yaml
+  datasource:
+    url: jdbc:h2:mem:integrationdb;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+jwt:
+  secret: integration-test-secret-key-must-be-at-least-32-bytes!!
+  access-expiration: 1800000
+  refresh-expiration: 604800000

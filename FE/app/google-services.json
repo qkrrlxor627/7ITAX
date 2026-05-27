@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "403303251461",
+    "project_id": "itax-3b797",
+    "storage_bucket": "itax-3b797.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403303251461:android:94b36d79af6afd9090266c",
+        "android_client_info": {
+          "package_name": "com.ssafy.seveniTax"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaSFZGJZBke7r-I2X5G0X7DibYSEhNMZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,21 @@
+### 간편장부 항목 확인
+PATCH {{baseUrl}}/book-entries/1/confirm
+Authorization: Bearer {{accessToken}}
+
+### 세목 카테고리 수정
+PATCH {{baseUrl}}/book-entries/1/category
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "categoryCode": "12",
+  "categoryName": "접대비"
+}
+
+### 개인용으로 변경
+PATCH {{baseUrl}}/book-entries/1/personal
+Authorization: Bearer {{accessToken}}
+
+### 사업용으로 변경
+PATCH {{baseUrl}}/book-entries/1/business
+Authorization: Bearer {{accessToken}}

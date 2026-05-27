@@ -1,0 +1,26 @@
+### 카드 결제
+POST {{baseUrl}}/cards/1/payment
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "merchantId": 1,
+  "paymentBalance": 50000
+}
+
+### 카드 결제 취소
+POST {{baseUrl}}/cards/1/payment/cancel
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "transactionUniqueNo": 1
+}
+
+### 카드 거래 내역 조회
+GET {{baseUrl}}/cards/1/transactions?startDate=2026-01-01&endDate=2026-12-31
+Authorization: Bearer {{accessToken}}
+
+### 카드 청구 내역 조회
+GET {{baseUrl}}/cards/1/billing?startMonth=202601&endMonth=202612
+Authorization: Bearer {{accessToken}}

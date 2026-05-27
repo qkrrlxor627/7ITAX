@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: tax7i-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: tax7i
+      POSTGRES_USER: ssafy
+      POSTGRES_PASSWORD: ssafy
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ssafy -d tax7i"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7
+    container_name: tax7i-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ssafy
+    volumes:
+      - redis-data:/var/lib/redis/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "ssafy", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: tax7i-ai
+    ports:
+      - "8000:8000"
+    environment:
+      GMS_API_KEY: ${GMS_API_KEY}
+      GMS_BASE_URL: ${GMS_BASE_URL:-https://gms.ssafy.io/gmsapi/api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      DEBUG: ${AI_DEBUG:-false}
+      ALLOWED_ORIGINS: '["http://localhost:3000"]'
+      BACKEND_BASE_URL: http://host.docker.internal:8080
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/')\""]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ai-chroma-data:/app/data/chroma
+
+  worker:
+    build:
+      context: ./BE
+      dockerfile: Dockerfile
+    container_name: tax7i-worker
+    environment:
+      SPRING_PROFILES_ACTIVE: worker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tax7i
+      DB_USERNAME: ssafy
+      DB_PASSWORD: ssafy
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AI_SERVICE_BASE_URL: http://ai:8000
+      AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY}
+      JWT_SECRET: ${JWT_SECRET:-default-secret}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres-data:
+  redis-data:
+  ai-chroma-data:

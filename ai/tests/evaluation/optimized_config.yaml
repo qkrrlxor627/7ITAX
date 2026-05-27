@@ -1,0 +1,17 @@
+# ai/tests/evaluation/optimized_config.yaml
+# Optimized RAG — 파라미터 튜닝 후 확정된 값
+
+name: optimized
+
+# RetrievalService.retrieve() 파라미터
+retrieval_top_k: 7          # plain 대비 +2: 세법 조문 특성상 관련 조항이 여러 청크에 분산됨
+search_strategy: hybrid     # hybrid 유지 (BM25 키워드 매칭이 법률 용어에 효과적)
+rrf_k: 60                   # 유지
+
+# LLM 파라미터
+temperature: 0.0            # Batch 7: 평가 재현성을 위해 0.0 사용
+
+# 참고 (재인덱싱 필요, 이번 실험에서는 변경 안 함)
+# chunk_size: 1000
+# chunk_overlap: 200
+# embedding_model: text-embedding-3-small

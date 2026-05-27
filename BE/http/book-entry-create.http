@@ -1,0 +1,60 @@
+### 간편장부 항목 생성 (지출)
+POST {{baseUrl}}/book-entries
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "entryDate": "2026-03-24",
+  "description": "사무용품 구입",
+  "merchantName": "오피스디포",
+  "entryType": "EXPENSE",
+  "amount": 35000,
+  "isVatExempt": false,
+  "categoryCode": "11",
+  "categoryName": "소모품비",
+  "note": "프린터 잉크 외"
+}
+
+### 간편장부 항목 생성 (수입)
+POST {{baseUrl}}/book-entries
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "entryDate": "2026-03-24",
+  "description": "프리랜서 용역 대금",
+  "entryType": "INCOME",
+  "amount": 3300000,
+  "isVatExempt": false,
+  "note": "3월 개발 용역비"
+}
+
+### 간편장부 항목 생성 (고정자산)
+POST {{baseUrl}}/book-entries
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "entryDate": "2026-03-20",
+  "description": "맥북 프로 구입",
+  "merchantName": "Apple 가로수길",
+  "entryType": "ASSET",
+  "amount": 2990000,
+  "isVatExempt": false,
+  "categoryCode": "17",
+  "categoryName": "감가상각비",
+  "note": "업무용 노트북"
+}
+
+### 수입 항목 생성 (원천징수 포함)
+POST {{baseUrl}}/book-entries/income
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "transactionDate": "2026-03-15",
+  "description": "프리랜서 개발 용역비",
+  "amount": 5000000,
+  "withholdingRate": 3.3,
+  "note": "A사 3월분 용역비"
+}

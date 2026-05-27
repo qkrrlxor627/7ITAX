@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 우산 몸체 (HTML 원본 동일) -->
+    <path
+        android:pathData="M12,2 C10.067,2 8.5,3.567 8.5,5.5 C8.5,6.753 9.167,7.853 10.147,8.457 C7.678,9.272 6,11.612 6,14.5 L6,17 L18,17 L18,14.5 C18,11.612 16.322,9.272 13.853,8.457 C14.833,7.853 15.5,6.753 15.5,5.5 C15.5,3.567 13.933,2 12,2Z"
+        android:fillColor="#F5A623"/>
+    <!-- 하단 (HTML 원본 동일) -->
+    <path
+        android:pathData="M4,17 C4,17 4,22 12,22 C20,22 20,17 20,17 L4,17Z"
+        android:fillColor="#F5A623"/>
+</vector>

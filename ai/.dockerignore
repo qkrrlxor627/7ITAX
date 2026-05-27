@@ -1,0 +1,25 @@
+
+
+# 학습 체크포인트 제외 (배포에 불필요, 6.5GB 절약)
+models/tax_classifier/checkpoint-*/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# 테스트/개발 전용
+tests/
+http/
+scripts/
+requirements-dev.txt
+
+# 기타
+.env
+*.log

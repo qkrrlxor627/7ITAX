@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+encryption:
+  aes-key: dGVzdC1hZXMtZW5jcnlwdGlvbi1rZXktMzItYnl0ZXM=
+
+jwt:
+  secret: test-secret-key-must-be-at-least-32-bytes-long!!
+  access-expiration: 1800000
+  refresh-expiration: 604800000
+
+ssafy:
+  finance:
+    base-url: https://finopenapi.ssafy.io/ssafy/api/v1/edu
+    api-key: test-finance-api-key
+    institution-code: "00100"
+    fintech-app-no: "001"
+
+app:
+  test-login:
+    enabled: true
+
+cors:
+  allowed-origins: http://localhost:3000
+
+solapi:
+  api-key: test-key
+  api-secret: test-secret
+  sender-phone: "01000000000"

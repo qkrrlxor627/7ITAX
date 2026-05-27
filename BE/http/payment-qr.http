@@ -1,0 +1,43 @@
+### QR 결제
+POST {{baseUrl}}/payments/qr
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cardId": 1,
+  "amount": 15000,
+  "merchantId": 1,
+  "merchantName": "편의점 GS25",
+  "merchantCategoryCode": "5411",
+  "purpose": "PERSONAL"
+}
+
+### QR 토큰 생성
+POST {{baseUrl}}/payments/qr/token
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cardId": 1,
+  "amount": 25000,
+  "merchantId": 2,
+  "merchantName": "교보문고 광화문점",
+  "merchantCategoryCode": "5942",
+  "purpose": "BUSINESS"
+}
+
+> {%
+  client.global.set("qrToken", response.body.data.token);
+%}
+
+### QR 토큰 결제 정보 조회
+GET {{baseUrl}}/payments/qr/token/{{qrToken}}
+Authorization: Bearer {{accessToken}}
+
+### QR 토큰 결제 확인
+POST {{baseUrl}}/payments/qr/token/{{qrToken}}/confirm
+Authorization: Bearer {{accessToken}}
+
+### QR 토큰 결제 상태 조회
+GET {{baseUrl}}/payments/qr/token/{{qrToken}}/status
+Authorization: Bearer {{accessToken}}

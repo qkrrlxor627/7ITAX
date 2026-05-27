@@ -1,0 +1,23 @@
+### 간편장부 목록 조회 (기본)
+GET {{baseUrl}}/book-entries?page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### 간편장부 목록 조회 (확인된 항목만)
+GET {{baseUrl}}/book-entries?confirmed=true&page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### 간편장부 목록 조회 (미확인 항목만)
+GET {{baseUrl}}/book-entries?confirmed=false&page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### 간편장부 항목 상세 조회
+GET {{baseUrl}}/book-entries/1
+Authorization: Bearer {{accessToken}}
+
+### 미확인 항목 수 조회
+GET {{baseUrl}}/book-entries/unconfirmed-count
+Authorization: Bearer {{accessToken}}
+
+### 간편장부 요약 조회 (연도별)
+GET {{baseUrl}}/book-entries/summary?year=2026
+Authorization: Bearer {{accessToken}}

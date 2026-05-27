@@ -1,0 +1,17 @@
+# ai/tests/evaluation/plain_config.yaml
+# Plain RAG — 현재 기본 파라미터 그대로
+
+name: plain
+
+# RetrievalService.retrieve() 파라미터
+retrieval_top_k: 5          # 기본값: 5
+search_strategy: hybrid     # 기본값: hybrid (BM25 + Vector + RRF)
+rrf_k: 60                   # 기본값: RetrievalService.RRF_K = 60
+
+# LLM 파라미터
+temperature: 0.0            # Batch 7: 평가 재현성을 위해 0.0 사용
+
+# 참고 (재인덱싱 필요, 이번 실험에서는 변경 안 함)
+# chunk_size: 1000
+# chunk_overlap: 200
+# embedding_model: text-embedding-3-small

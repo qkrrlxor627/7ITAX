@@ -1,0 +1,701 @@
+{
+  "mcc_to_category": {
+    "5811": {
+      "category": "패스트푸드",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "701201"
+    },
+    "5812": {
+      "category": "음식점",
+      "expense_type": "접대비/복리후생비",
+      "deductible": "conditional",
+      "industry_code": "701101"
+    },
+    "5813": {
+      "category": "주류",
+      "expense_type": "접대비",
+      "deductible": "conditional",
+      "industry_code": "701601"
+    },
+    "5814": {
+      "category": "패스트푸드",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "701301"
+    },
+    "5815": {
+      "category": "디지털콘텐츠",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "720001"
+    },
+    "5816": {
+      "category": "게임/소프트웨어",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "720301"
+    },
+    "5817": {
+      "category": "소프트웨어",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "720001"
+    },
+    "5818": {
+      "category": "디지털",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "720001"
+    },
+    "5045": {
+      "category": "전자기기",
+      "expense_type": "비품/소모품비",
+      "deductible": true,
+      "industry_code": "523310"
+    },
+    "5065": {
+      "category": "전기자재",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "523310"
+    },
+    "5200": {
+      "category": "가정용품",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "5211": {
+      "category": "건축자재",
+      "expense_type": "재료비",
+      "deductible": true,
+      "industry_code": "960101"
+    },
+    "5251": {
+      "category": "철물",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "5261": {
+      "category": "원예",
+      "expense_type": "소모품비",
+      "deductible": false,
+      "industry_code": "523810"
+    },
+    "5411": {
+      "category": "식료품",
+      "expense_type": "재료비",
+      "deductible": true,
+      "industry_code": "523110"
+    },
+    "5422": {
+      "category": "식재료",
+      "expense_type": "재료비",
+      "deductible": true,
+      "industry_code": "523110"
+    },
+    "5441": {
+      "category": "식품",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "523110"
+    },
+    "5451": {
+      "category": "식재료",
+      "expense_type": "재료비",
+      "deductible": true,
+      "industry_code": "523110"
+    },
+    "5462": {
+      "category": "식품",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "701401"
+    },
+    "5499": {
+      "category": "식품",
+      "expense_type": "재료비",
+      "deductible": true,
+      "industry_code": "523110"
+    },
+    "5511": {
+      "category": "자동차",
+      "expense_type": "차량구입비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "5521": {
+      "category": "중고차",
+      "expense_type": "차량구입비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "5531": {
+      "category": "자동차부품",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "505101"
+    },
+    "5541": {
+      "category": "연료",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "505001"
+    },
+    "5542": {
+      "category": "연료",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "505001"
+    },
+    "5551": {
+      "category": "선박",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "5571": {
+      "category": "오토바이",
+      "expense_type": "차량구입비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "5599": {
+      "category": "자동차용품",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "505101"
+    },
+    "5611": {
+      "category": "의류",
+      "expense_type": "복리후생비/소모품비",
+      "deductible": false,
+      "industry_code": "523210"
+    },
+    "5621": {
+      "category": "의류",
+      "expense_type": "복리후생비/소모품비",
+      "deductible": false,
+      "industry_code": "523210"
+    },
+    "5631": {
+      "category": "액세서리",
+      "expense_type": "복리후생비",
+      "deductible": false,
+      "industry_code": "523910"
+    },
+    "5641": {
+      "category": "아동의류",
+      "expense_type": "복리후생비",
+      "deductible": false,
+      "industry_code": "523210"
+    },
+    "5651": {
+      "category": "의류",
+      "expense_type": "복리후생비",
+      "deductible": false,
+      "industry_code": "523210"
+    },
+    "5661": {
+      "category": "신발",
+      "expense_type": "복리후생비",
+      "deductible": false,
+      "industry_code": "523210"
+    },
+    "5691": {
+      "category": "의류",
+      "expense_type": "복리후생비",
+      "deductible": false,
+      "industry_code": "523210"
+    },
+    "5699": {
+      "category": "잡화",
+      "expense_type": "소모품비",
+      "deductible": "conditional",
+      "industry_code": "523110"
+    },
+    "5712": {
+      "category": "가구",
+      "expense_type": "비품비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "5722": {
+      "category": "가전",
+      "expense_type": "비품비",
+      "deductible": true,
+      "industry_code": "523310"
+    },
+    "5732": {
+      "category": "전자제품",
+      "expense_type": "비품/소모품비",
+      "deductible": true,
+      "industry_code": "523310"
+    },
+    "5734": {
+      "category": "소프트웨어",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "720001"
+    },
+    "5912": {
+      "category": "의약품",
+      "expense_type": "복리후생비/소모품비",
+      "deductible": "conditional",
+      "industry_code": "523410"
+    },
+    "5941": {
+      "category": "스포츠용품",
+      "expense_type": "복리후생비",
+      "deductible": false,
+      "industry_code": "523710"
+    },
+    "5942": {
+      "category": "도서",
+      "expense_type": "교육훈련비",
+      "deductible": true,
+      "industry_code": "523610"
+    },
+    "5943": {
+      "category": "문구",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "523110"
+    },
+    "5945": {
+      "category": "완구",
+      "expense_type": "소모품비",
+      "deductible": false,
+      "industry_code": "523510"
+    },
+    "5999": {
+      "category": "기타",
+      "expense_type": "소모품비",
+      "deductible": "conditional",
+      "industry_code": "523110"
+    },
+    "4011": {
+      "category": "철도",
+      "expense_type": "여비교통비",
+      "deductible": true,
+      "industry_code": "492201"
+    },
+    "4111": {
+      "category": "대중교통",
+      "expense_type": "여비교통비",
+      "deductible": true,
+      "industry_code": "492101"
+    },
+    "4121": {
+      "category": "택시",
+      "expense_type": "여비교통비",
+      "deductible": true,
+      "industry_code": "492101"
+    },
+    "4131": {
+      "category": "버스",
+      "expense_type": "여비교통비",
+      "deductible": true,
+      "industry_code": "492101"
+    },
+    "4411": {
+      "category": "항공",
+      "expense_type": "여비교통비",
+      "deductible": true,
+      "industry_code": "492201"
+    },
+    "4511": {
+      "category": "항공",
+      "expense_type": "여비교통비",
+      "deductible": true,
+      "industry_code": "492201"
+    },
+    "4722": {
+      "category": "여행",
+      "expense_type": "여비교통비",
+      "deductible": "conditional",
+      "industry_code": "741401"
+    },
+    "4784": {
+      "category": "도로통행료",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "492101"
+    },
+    "4814": {
+      "category": "통신",
+      "expense_type": "통신비",
+      "deductible": true,
+      "industry_code": "720101"
+    },
+    "4899": {
+      "category": "통신",
+      "expense_type": "통신비",
+      "deductible": true,
+      "industry_code": "720101"
+    },
+    "7011": {
+      "category": "호텔",
+      "expense_type": "여비교통비/접대비",
+      "deductible": "conditional",
+      "industry_code": "551001"
+    },
+    "7012": {
+      "category": "숙박",
+      "expense_type": "여비교통비",
+      "deductible": "conditional",
+      "industry_code": "551001"
+    },
+    "7021": {
+      "category": "숙박",
+      "expense_type": "여비교통비",
+      "deductible": true,
+      "industry_code": "551101"
+    },
+    "7032": {
+      "category": "캠프",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "931001"
+    },
+    "7033": {
+      "category": "캠핑",
+      "expense_type": "여비교통비",
+      "deductible": "conditional",
+      "industry_code": "551201"
+    },
+    "7211": {
+      "category": "세탁",
+      "expense_type": "소모품비",
+      "deductible": "conditional",
+      "industry_code": "960001"
+    },
+    "7216": {
+      "category": "드라이클리닝",
+      "expense_type": "소모품비",
+      "deductible": "conditional",
+      "industry_code": "960001"
+    },
+    "7221": {
+      "category": "사진",
+      "expense_type": "광고비",
+      "deductible": "conditional",
+      "industry_code": "960301"
+    },
+    "7230": {
+      "category": "미용",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "930001"
+    },
+    "7231": {
+      "category": "미용",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "930001"
+    },
+    "7251": {
+      "category": "수선",
+      "expense_type": "소모품비",
+      "deductible": false,
+      "industry_code": "960001"
+    },
+    "7261": {
+      "category": "장례",
+      "expense_type": "접대비",
+      "deductible": "conditional",
+      "industry_code": "960001"
+    },
+    "7299": {
+      "category": "기타서비스",
+      "expense_type": "소모품비",
+      "deductible": "conditional",
+      "industry_code": "960201"
+    },
+    "7372": {
+      "category": "IT서비스",
+      "expense_type": "외주용역비",
+      "deductible": true,
+      "industry_code": "720001"
+    },
+    "7374": {
+      "category": "IT서비스",
+      "expense_type": "외주용역비",
+      "deductible": true,
+      "industry_code": "720101"
+    },
+    "7379": {
+      "category": "IT서비스",
+      "expense_type": "외주용역비",
+      "deductible": true,
+      "industry_code": "720101"
+    },
+    "7392": {
+      "category": "컨설팅",
+      "expense_type": "외주용역비",
+      "deductible": true,
+      "industry_code": "741401"
+    },
+    "7399": {
+      "category": "비즈니스서비스",
+      "expense_type": "외주용역비",
+      "deductible": true,
+      "industry_code": "741401"
+    },
+    "7512": {
+      "category": "렌터카",
+      "expense_type": "차량유지비/여비교통비",
+      "deductible": true,
+      "industry_code": "492101"
+    },
+    "7523": {
+      "category": "주차비",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "492101"
+    },
+    "7542": {
+      "category": "세차",
+      "expense_type": "차량유지비",
+      "deductible": true,
+      "industry_code": "505101"
+    },
+    "7622": {
+      "category": "수리",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "523310"
+    },
+    "7641": {
+      "category": "수리",
+      "expense_type": "소모품비",
+      "deductible": true,
+      "industry_code": "523510"
+    },
+    "7922": {
+      "category": "공연",
+      "expense_type": "접대비/복리후생비",
+      "deductible": "conditional",
+      "industry_code": "931201"
+    },
+    "7941": {
+      "category": "스포츠",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "931001"
+    },
+    "7991": {
+      "category": "관광",
+      "expense_type": "여비교통비/접대비",
+      "deductible": "conditional",
+      "industry_code": "931201"
+    },
+    "7997": {
+      "category": "골프",
+      "expense_type": "접대비",
+      "deductible": "conditional",
+      "industry_code": "931101"
+    },
+    "7999": {
+      "category": "레크리에이션",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "931201"
+    },
+    "8011": {
+      "category": "의료",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "742001"
+    },
+    "8021": {
+      "category": "치과",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "742101"
+    },
+    "8049": {
+      "category": "한의",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "742201"
+    },
+    "8050": {
+      "category": "요양",
+      "expense_type": "복리후생비",
+      "deductible": false,
+      "industry_code": "742001"
+    },
+    "8099": {
+      "category": "의료",
+      "expense_type": "복리후생비",
+      "deductible": "conditional",
+      "industry_code": "742001"
+    },
+    "8111": {
+      "category": "법무",
+      "expense_type": "전문서비스비",
+      "deductible": true,
+      "industry_code": "741001"
+    },
+    "8211": {
+      "category": "교육",
+      "expense_type": "교육훈련비",
+      "deductible": "conditional",
+      "industry_code": "855001"
+    },
+    "8220": {
+      "category": "교육",
+      "expense_type": "교육훈련비",
+      "deductible": true,
+      "industry_code": "855001"
+    },
+    "8299": {
+      "category": "교육",
+      "expense_type": "교육훈련비",
+      "deductible": true,
+      "industry_code": "855001"
+    },
+    "8398": {
+      "category": "기부",
+      "expense_type": "기부금",
+      "deductible": true,
+      "industry_code": "741401"
+    },
+    "8999": {
+      "category": "전문서비스",
+      "expense_type": "전문서비스비",
+      "deductible": true,
+      "industry_code": "741401"
+    }
+  },
+  "expense_rate_lookup": {
+    "701101": {
+      "simple_rate": 90.3,
+      "standard_rate": 19.8,
+      "industry": "한식 음식점업"
+    },
+    "701201": {
+      "simple_rate": 91.0,
+      "standard_rate": 21.0,
+      "industry": "간이 음식점업(분식집)"
+    },
+    "701301": {
+      "simple_rate": 90.5,
+      "standard_rate": 20.1,
+      "industry": "치킨전문점"
+    },
+    "701401": {
+      "simple_rate": 88.0,
+      "standard_rate": 17.5,
+      "industry": "제과점업"
+    },
+    "701601": {
+      "simple_rate": 87.0,
+      "standard_rate": 16.5,
+      "industry": "주점업(일반)"
+    },
+    "523110": {
+      "simple_rate": 91.5,
+      "standard_rate": 10.2,
+      "industry": "슈퍼마켓 및 잡화점"
+    },
+    "523210": {
+      "simple_rate": 81.2,
+      "standard_rate": 15.3,
+      "industry": "의류 소매업"
+    },
+    "523310": {
+      "simple_rate": 84.5,
+      "standard_rate": 12.1,
+      "industry": "전자제품 소매업"
+    },
+    "523510": {
+      "simple_rate": 79.5,
+      "standard_rate": 16.8,
+      "industry": "가구 소매업"
+    },
+    "523610": {
+      "simple_rate": 83.0,
+      "standard_rate": 14.2,
+      "industry": "도서 소매업"
+    },
+    "492101": {
+      "simple_rate": 79.4,
+      "standard_rate": 18.1,
+      "industry": "일반택시 운송업"
+    },
+    "505001": {
+      "simple_rate": 94.5,
+      "standard_rate": 4.8,
+      "industry": "자동차 연료 판매업(주유소)"
+    },
+    "505101": {
+      "simple_rate": 72.0,
+      "standard_rate": 21.5,
+      "industry": "자동차 수리업"
+    },
+    "551001": {
+      "simple_rate": 62.1,
+      "standard_rate": 24.8,
+      "industry": "호텔업"
+    },
+    "720001": {
+      "simple_rate": 64.1,
+      "standard_rate": 16.8,
+      "industry": "소프트웨어 개발업"
+    },
+    "720101": {
+      "simple_rate": 63.5,
+      "standard_rate": 17.5,
+      "industry": "IT 컨설팅업"
+    },
+    "741001": {
+      "simple_rate": 52.3,
+      "standard_rate": 25.8,
+      "industry": "법무사"
+    },
+    "741401": {
+      "simple_rate": 57.5,
+      "standard_rate": 22.5,
+      "industry": "컨설팅업"
+    },
+    "742001": {
+      "simple_rate": 52.5,
+      "standard_rate": 21.0,
+      "industry": "의사(일반의)"
+    },
+    "855001": {
+      "simple_rate": 64.2,
+      "standard_rate": 22.1,
+      "industry": "학원업(입시)"
+    },
+    "930001": {
+      "simple_rate": 67.5,
+      "standard_rate": 19.8,
+      "industry": "미용업"
+    },
+    "931001": {
+      "simple_rate": 60.5,
+      "standard_rate": 22.5,
+      "industry": "헬스클럽업"
+    },
+    "931101": {
+      "simple_rate": 58.5,
+      "standard_rate": 23.8,
+      "industry": "골프연습장업"
+    },
+    "931201": {
+      "simple_rate": 59.5,
+      "standard_rate": 22.8,
+      "industry": "스포츠센터업"
+    },
+    "960001": {
+      "simple_rate": 72.5,
+      "standard_rate": 18.2,
+      "industry": "세탁업"
+    }
+  }
+}

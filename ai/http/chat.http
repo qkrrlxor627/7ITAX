@@ -1,0 +1,122 @@
+@baseUrl = http://localhost:8000/api/v1
+@sessionId = addaa282b8cd46fda54bd798a054d8a6
+
+# ============================================================
+# Health Check
+# ============================================================
+
+### 서버 상태 확인
+GET {{baseUrl}}/health/
+
+# ============================================================
+# Chat — 신규 세션 (session_id 없이 요청)
+# ============================================================
+
+### [GENERAL] 일반 질문
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "세금 신고를 처음 하는데 뭐부터 시작해야 해?"
+}
+
+###
+
+### [CONCEPT_EXPLANATION] 세무 개념 설명
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "종합소득세가 뭐야?"
+}
+
+###
+
+### [TAX_RATE_LOOKUP] 세율 조회
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "2024년 종합소득세 세율표 알려줘"
+}
+
+###
+
+### [EXPENSE_CLASSIFICATION] 경비 분류
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "식당에서 거래처 접대비로 쓴 비용이 경비로 인정되나요?"
+}
+
+###
+
+### [DEDUCTION_ELIGIBILITY] 공제/감면 적격
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "중소기업 취업자 소득세 감면 받으려면 어떤 조건이 필요해?"
+}
+
+###
+
+### [PROCEDURE_GUIDE] 신고 절차 안내
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "부가가치세 신고 절차를 단계별로 알려줘"
+}
+
+###
+
+### [CALCULATION] 세금 계산
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "연 소득 5000만원이면 종합소득세 얼마나 내야 해?"
+}
+
+###
+
+### [COMPARISON] 세금 제도 비교
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "간이과세자와 일반과세자 차이가 뭐야?"
+}
+
+# ============================================================
+# Chat — 세션 유지 (session_id로 대화 이어가기)
+# ============================================================
+
+### 세션 유지 — 이전 답변 이어서 질문
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "더 자세히 알려줘",
+  "session_id": "{{sessionId}}"
+}
+
+###
+
+### 세션 유지 — 구체적 추가 질문
+POST {{baseUrl}}/chat/
+Content-Type: application/json
+
+{
+  "message": "그럼 신고 기한은 언제야?",
+  "session_id": "{{sessionId}}"
+}
+
+# ============================================================
+# Chat History — 대화 히스토리 조회
+# ============================================================
+
+### 특정 세션 히스토리 조회
+GET {{baseUrl}}/chat/history/{{sessionId}}

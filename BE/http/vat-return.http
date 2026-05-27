@@ -1,0 +1,22 @@
+### 부가세 신고서 생성
+POST {{baseUrl}}/tax/vat-returns
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "taxYear": 2025,
+  "taxPeriod": 1,
+  "preliminaryPaid": 300000
+}
+
+### 부가세 신고서 목록 조회
+GET {{baseUrl}}/tax/vat-returns
+Authorization: Bearer {{accessToken}}
+
+### 부가세 신고서 상세 조회
+GET {{baseUrl}}/tax/vat-returns/1
+Authorization: Bearer {{accessToken}}
+
+### 부가세 신고서 제출
+POST {{baseUrl}}/tax/vat-returns/1/submit
+Authorization: Bearer {{accessToken}}

@@ -1,0 +1,35 @@
+# === 프로덕션 의존성 ===
+
+# 웹 서버
+fastapi
+uvicorn
+pydantic-settings
+python-dotenv
+httpx>=0.27.0
+tenacity
+cachetools>=5.3.0
+
+# LangChain + LLM
+langchain
+langchain-openai
+
+# 벡터DB
+chromadb>=0.4.0
+langchain-chroma>=0.1.0
+
+# PDF 파싱
+pypdf>=4.0.0
+
+# 텍스트 분할
+langchain-text-splitters>=0.2.0
+
+# 벡터 연산
+numpy>=1.26.0
+
+# BM25 검색
+rank-bm25>=0.2.2
+
+# 로컬 모델 추론 (Reranker + 세목 분류기) — CPU 전용
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2.0
+transformers>=4.40.0

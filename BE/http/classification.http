@@ -1,0 +1,46 @@
+### 세목 자동 분류 (기본)
+POST {{baseUrl}}/classification
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "merchantName": "스타벅스 강남점",
+  "mcc": "5812",
+  "amount": 5500
+}
+
+### 세목 자동 분류 (MCC 없이)
+POST {{baseUrl}}/classification
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "merchantName": "쿠팡",
+  "amount": 45000
+}
+
+### 세목 자동 분류 (사업 목적 명시)
+POST {{baseUrl}}/classification
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "merchantName": "이마트",
+  "mcc": "5411",
+  "amount": 150000,
+  "isBusinessPurpose": true
+}
+
+### 세목 자동 분류 (접대비 판단 - 거래처 동행)
+POST {{baseUrl}}/classification
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "merchantName": "한우명가",
+  "mcc": "5812",
+  "amount": 350000,
+  "isBusinessPurpose": true,
+  "isClientAccompanied": true,
+  "userId": 1
+}

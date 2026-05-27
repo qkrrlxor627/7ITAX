@@ -1,0 +1,18 @@
+### 세금 계산
+POST {{baseUrl}}/tax/calculate
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "taxYear": 2025,
+  "prepaidTax": 500000,
+  "deductions": {
+    "국민연금": 1200000,
+    "건강보험": 800000,
+    "개인연금": 4000000
+  }
+}
+
+### 절세 현황 조회
+GET {{baseUrl}}/tax/savings?taxYear=2025
+Authorization: Bearer {{accessToken}}

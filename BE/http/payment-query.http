@@ -1,0 +1,19 @@
+### 결제 상세 조회
+GET {{baseUrl}}/payments/1
+Authorization: Bearer {{accessToken}}
+
+### 결제 목록 조회 (기본)
+GET {{baseUrl}}/payments?page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### 결제 목록 조회 (날짜 필터)
+GET {{baseUrl}}/payments?startDate=2026-01-01&endDate=2026-12-31&page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### 결제 목록 조회 (상태 필터)
+GET {{baseUrl}}/payments?status=CAPTURED&page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### 결제 목록 조회 (복합 필터)
+GET {{baseUrl}}/payments?startDate=2026-01-01&endDate=2026-12-31&status=CAPTURED&page=0&size=10
+Authorization: Bearer {{accessToken}}

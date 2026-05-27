@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'NanumGothic', sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #000;
+        }
+        h1 {
+            text-align: center;
+            font-size: 16pt;
+            margin-bottom: 4px;
+        }
+        .sub-header {
+            text-align: center;
+            font-size: 9pt;
+            color: #555;
+            margin-bottom: 12px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .info-table td {
+            padding: 3px 8px;
+            border: 1px solid #999;
+        }
+        .info-table td.label {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            width: 12%;
+        }
+        table.ledger {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        table.ledger th,
+        table.ledger td {
+            border: 1px solid #333;
+            padding: 3px 6px;
+        }
+        table.ledger th {
+            background-color: #d9e2f3;
+            text-align: center;
+            font-weight: bold;
+            font-size: 8pt;
+        }
+        table.ledger th.group {
+            background-color: #b4c6e7;
+            font-size: 9pt;
+        }
+        table.ledger td {
+            font-size: 8pt;
+        }
+        .right {
+            text-align: right;
+        }
+        .center {
+            text-align: center;
+        }
+        .total-row td {
+            font-weight: bold;
+            background-color: #f5f5f5;
+            border-top: 2px solid #000;
+        }
+        .summary {
+            margin-top: 16px;
+        }
+        .summary table {
+            width: 50%;
+            border-collapse: collapse;
+        }
+        .summary td {
+            padding: 4px 8px;
+            border: 1px solid #999;
+        }
+        .summary td.label {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            width: 50%;
+        }
+        .legal {
+            margin-top: 12px;
+            font-size: 7pt;
+            color: #777;
+        }
+        .disclaimer {
+            margin-top: 16px;
+            padding: 6px;
+            border: 1px solid #999;
+            font-size: 8pt;
+            color: #555;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h1>간  편  장  부</h1>
+<p class="sub-header">
+    <span th:text="'■ 국세청고시 제2024-19호 | 소득세법 §160 | ' + ${year} + '년 귀속'">-</span>
+</p>
+
+<!-- 사업자 정보 -->
+<table class="info-table">
+    <tr>
+        <td class="label">성명</td>
+        <td th:text="${userName}">-</td>
+        <td class="label">상호</td>
+        <td th:text="${businessName}">-</td>
+        <td class="label">사업자등록번호</td>
+        <td th:text="${regNumber}">-</td>
+        <td class="label">기간</td>
+        <td th:text="${year} + '.01.01 ~ ' + ${year} + '.12.31'">-</td>
+    </tr>
+</table>
+
+<!-- 간편장부 본문 -->
+<table class="ledger">
+    <thead>
+        <tr>
+            <th rowspan="2" style="width:8%;">날짜</th>
+            <th rowspan="2" style="width:18%;">거래내용</th>
+            <th class="group" colspan="2">수입(매출)</th>
+            <th class="group" colspan="2">비용(매입/경비)</th>
+            <th class="group" colspan="3">고정자산</th>
+            <th rowspan="2" style="width:8%;">비고</th>
+        </tr>
+        <tr>
+            <th style="width:8%;">매출액</th>
+            <th style="width:7%;">부가세</th>
+            <th style="width:8%;">매입/경비</th>
+            <th style="width:7%;">부가세</th>
+            <th style="width:8%;">금액</th>
+            <th style="width:7%;">부가세</th>
+            <th style="width:5%;">증감</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="e : ${entries}">
+            <td class="center" th:text="${e.date}">-</td>
+            <td th:text="${e.description}">-</td>
+            <td class="right" th:text="${e.incomeAmount != 0 ? #numbers.formatInteger(e.incomeAmount, 0, 'COMMA') : ''}"></td>
+            <td class="right" th:text="${e.incomeVat != 0 ? #numbers.formatInteger(e.incomeVat, 0, 'COMMA') : ''}"></td>
+            <td class="right" th:text="${e.expenseAmount != 0 ? #numbers.formatInteger(e.expenseAmount, 0, 'COMMA') : ''}"></td>
+            <td class="right" th:text="${e.expenseVat != 0 ? #numbers.formatInteger(e.expenseVat, 0, 'COMMA') : ''}"></td>
+            <td class="right" th:text="${e.assetAmount != 0 ? #numbers.formatInteger(e.assetAmount, 0, 'COMMA') : ''}"></td>
+            <td class="right" th:text="${e.assetVat != 0 ? #numbers.formatInteger(e.assetVat, 0, 'COMMA') : ''}"></td>
+            <td class="center" th:text="${e.assetAmount != 0 ? '증가' : ''}"></td>
+            <td th:text="${e.note}"></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(entries)}">
+            <td colspan="10" class="center">등록된 장부 내역이 없습니다.</td>
+        </tr>
+        <tr class="total-row">
+            <td colspan="2" class="center">합  계</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalIncome, 0, 'COMMA')}">0</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalIncomeVat, 0, 'COMMA')}">0</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalExpense, 0, 'COMMA')}">0</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalExpenseVat, 0, 'COMMA')}">0</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalAsset, 0, 'COMMA')}">0</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalAssetVat, 0, 'COMMA')}">0</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- 요약 -->
+<div class="summary">
+    <table>
+        <tr>
+            <td class="label">총수입금액 (매출)</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalIncome, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">총비용 (매입+경비)</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalExpense, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">고정자산 매입</td>
+            <td class="right" th:text="${#numbers.formatInteger(totalAsset, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">총 건수</td>
+            <td class="right" th:text="${entryCount} + ' 건'">0</td>
+        </tr>
+    </table>
+</div>
+
+<p class="legal">
+    ※ 근거: 소득세법 §160 장부의 비치·기록 | 국세청고시 제2024-19호 간편장부 서식<br/>
+    ※ 5년 보관의무: 소득세법 §160의2 "확정신고기한이 지난 날부터 5년간 보존"<br/>
+    ※ 미기장 가산세: 산출세액 × 20% (국세청 nts.go.kr/cntntsId=7669)
+</p>
+
+<div class="disclaimer">
+    본 문서는 7iTAX 시뮬레이션 환경에서 생성되었으며, 실제 납세증빙으로 사용할 수 없습니다.
+</div>
+
+</body>
+</html>

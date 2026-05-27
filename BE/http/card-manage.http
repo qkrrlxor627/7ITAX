@@ -1,0 +1,40 @@
+### 카드 상품 목록 조회
+GET {{baseUrl}}/cards/products
+Authorization: Bearer {{accessToken}}
+
+### 연동 계좌 목록 조회
+GET {{baseUrl}}/cards/accounts
+Authorization: Bearer {{accessToken}}
+
+### 가맹점 목록 조회
+GET {{baseUrl}}/cards/merchants
+Authorization: Bearer {{accessToken}}
+
+### 카드 생성
+POST {{baseUrl}}/cards
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cardName": "사업용 카드",
+  "cardType": "BUSINESS",
+  "cardUniqueNo": "1001-100-00001",
+  "withdrawalAccountNo": "0012345678901234",
+  "withdrawalDate": "15"
+}
+
+### 카드 목록 조회
+GET {{baseUrl}}/cards
+Authorization: Bearer {{accessToken}}
+
+### 카드 상세 조회
+GET {{baseUrl}}/cards/1
+Authorization: Bearer {{accessToken}}
+
+### 기본 카드 설정
+PATCH {{baseUrl}}/cards/1/default
+Authorization: Bearer {{accessToken}}
+
+### 카드 삭제
+DELETE {{baseUrl}}/cards/1
+Authorization: Bearer {{accessToken}}

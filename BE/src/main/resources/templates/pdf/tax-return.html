@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+        body {
+            font-family: 'NanumGothic', sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #000;
+        }
+        h1 {
+            text-align: center;
+            font-size: 16pt;
+            margin-bottom: 4px;
+        }
+        h2 {
+            text-align: center;
+            font-size: 13pt;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        h3 {
+            font-size: 12pt;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 4px 8px;
+        }
+        th {
+            background-color: #e8e8e8;
+            text-align: center;
+            font-weight: bold;
+        }
+        td.label {
+            background-color: #f5f5f5;
+            width: 30%;
+            font-weight: bold;
+        }
+        td.value {
+            text-align: right;
+            width: 20%;
+        }
+        .center {
+            text-align: center;
+        }
+        .right {
+            text-align: right;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .sub-header {
+            text-align: center;
+            font-size: 9pt;
+            color: #555;
+            margin-bottom: 16px;
+        }
+        .disclaimer {
+            margin-top: 20px;
+            padding: 8px;
+            border: 1px solid #999;
+            font-size: 8pt;
+            color: #555;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== Page 1: Tax Return Declaration ===== -->
+<h1>종합소득세 확정신고서</h1>
+<p class="sub-header">7iTAX Simulation</p>
+
+<h3>납세자 정보</h3>
+<table>
+    <tr>
+        <td class="label">성명</td>
+        <td th:text="${r.taxpayerName}">-</td>
+        <td class="label">주민등록번호</td>
+        <td th:text="${r.residentNumber}">-</td>
+    </tr>
+    <tr>
+        <td class="label">귀속연도</td>
+        <td th:text="${r.taxYear} + '년'">-</td>
+        <td class="label">접수번호</td>
+        <td th:text="${r.receiptNumber != null ? r.receiptNumber : '-'}">-</td>
+    </tr>
+    <tr>
+        <td class="label">신고상태</td>
+        <td th:text="${r.status}">-</td>
+        <td class="label">제출일</td>
+        <td th:text="${r.submittedAt != null ? #temporals.format(r.submittedAt, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+    </tr>
+</table>
+
+<h3>소득 내역</h3>
+<table>
+    <tr>
+        <td class="label">총수입금액</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.totalRevenue, 0, 'COMMA')} + ' 원'">0</td>
+        <td class="label">필요경비</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.totalExpense, 0, 'COMMA')} + ' 원'">0</td>
+    </tr>
+    <tr>
+        <td class="label">소득금액</td>
+        <td class="value" colspan="3" th:text="${#numbers.formatInteger(r.incomeAmount, 0, 'COMMA')} + ' 원'">0</td>
+    </tr>
+</table>
+
+<h3>소득공제 내역</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 60%;">공제 항목</th>
+            <th style="width: 40%;">공제 금액</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="entry : ${deductions}">
+            <td th:text="${entry.key}">-</td>
+            <td class="right" th:text="${#numbers.formatInteger(entry.value, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr th:if="${#maps.isEmpty(deductions)}">
+            <td colspan="2" class="center">공제 항목 없음</td>
+        </tr>
+        <tr>
+            <td class="label">소득공제 합계</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.totalDeductions, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>세액 계산</h3>
+<table>
+    <tr>
+        <td class="label">과세표준</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.taxableIncome, 0, 'COMMA')} + ' 원'">0</td>
+        <td class="label">적용세율</td>
+        <td class="value" th:text="${r.taxRate} + '%'">0</td>
+    </tr>
+    <tr>
+        <td class="label">산출세액</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.calculatedTax, 0, 'COMMA')} + ' 원'">0</td>
+        <td class="label">결정세액</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.determinedTax, 0, 'COMMA')} + ' 원'">0</td>
+    </tr>
+    <tr>
+        <td class="label">기납부세액</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.prepaidTax, 0, 'COMMA')} + ' 원'">0</td>
+        <td class="label">납부할 국세</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.finalTax, 0, 'COMMA')} + ' 원'">0</td>
+    </tr>
+    <tr>
+        <td class="label">지방소득세</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.localTax, 0, 'COMMA')} + ' 원'">0</td>
+        <td class="label">총 납부세액</td>
+        <td class="value" th:text="${#numbers.formatInteger(r.finalTax + r.localTax, 0, 'COMMA')} + ' 원'">0</td>
+    </tr>
+</table>
+
+<div class="disclaimer">
+    본 문서는 7iTAX 시뮬레이션 환경에서 생성되었으며, 실제 납세증빙으로 사용할 수 없습니다.
+</div>
+
+<!-- ===== Page 2: Expense Details ===== -->
+<div class="page-break"></div>
+<h1>필요경비명세서</h1>
+<p class="sub-header" th:text="${r.taxpayerName} + ' | ' + ${r.taxYear} + '년 귀속'">-</p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 10%;">번호</th>
+            <th style="width: 20%;">경비코드</th>
+            <th style="width: 40%;">경비항목</th>
+            <th style="width: 30%;">금액</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="d, stat : ${details}">
+            <td class="center" th:text="${stat.count}">1</td>
+            <td class="center" th:text="${d.expenseCode}">-</td>
+            <td th:text="${d.expenseName}">-</td>
+            <td class="right" th:text="${#numbers.formatInteger(d.amount, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(details)}">
+            <td colspan="4" class="center">등록된 경비 내역이 없습니다.</td>
+        </tr>
+        <tr>
+            <td class="label" colspan="3">필요경비 합계</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.totalExpense, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ===== Page 3: Income Calculation Summary ===== -->
+<div class="page-break"></div>
+<h1>간편장부소득금액계산서</h1>
+<p class="sub-header" th:text="${r.taxpayerName} + ' | ' + ${r.taxYear} + '년 귀속'">-</p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 60%;">항목</th>
+            <th style="width: 40%;">금액</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="label">1. 총수입금액</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.totalRevenue, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">2. 필요경비 합계</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.totalExpense, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">3. 소득금액 (1 - 2)</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.incomeAmount, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">4. 소득공제 합계</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.totalDeductions, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">5. 과세표준 (3 - 4)</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.taxableIncome, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">6. 적용세율</td>
+            <td class="value" th:text="${r.taxRate} + '%'">0</td>
+        </tr>
+        <tr>
+            <td class="label">7. 산출세액</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.calculatedTax, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">8. 결정세액</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.determinedTax, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">9. 기납부세액</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.prepaidTax, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">10. 납부할 국세 (8 - 9)</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.finalTax, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">11. 지방소득세</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.localTax, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+        <tr>
+            <td class="label">12. 총 납부세액 (10 + 11)</td>
+            <td class="value" th:text="${#numbers.formatInteger(r.finalTax + r.localTax, 0, 'COMMA')} + ' 원'">0</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="disclaimer">
+    본 문서는 7iTAX 시뮬레이션 환경에서 생성되었으며, 실제 납세증빙으로 사용할 수 없습니다.
+</div>
+
+</body>
+</html>

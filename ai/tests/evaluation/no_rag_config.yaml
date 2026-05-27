@@ -1,0 +1,9 @@
+# ai/tests/evaluation/no_rag_config.yaml
+# No RAG — LLM만 사용 (검색 없이 순수 LLM 답변)
+
+name: no_rag
+
+use_rag: false
+
+# LLM 파라미터
+temperature: 0.0            # Batch 7: 평가 재현성을 위해 0.0 사용

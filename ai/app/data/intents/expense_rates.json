@@ -1,0 +1,505 @@
+{
+  "rates": [
+    {
+      "industry_code": "701101",
+      "industry_name": "한식 음식점업",
+      "simple_expense_rate": 90.3,
+      "standard_expense_rate": 19.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701102",
+      "industry_name": "중식 음식점업",
+      "simple_expense_rate": 89.7,
+      "standard_expense_rate": 18.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701103",
+      "industry_name": "일식 음식점업",
+      "simple_expense_rate": 89.5,
+      "standard_expense_rate": 18.3,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701104",
+      "industry_name": "서양식 음식점업",
+      "simple_expense_rate": 89.2,
+      "standard_expense_rate": 18.1,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701201",
+      "industry_name": "간이 음식점업(분식집)",
+      "simple_expense_rate": 91.0,
+      "standard_expense_rate": 21.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701301",
+      "industry_name": "치킨전문점",
+      "simple_expense_rate": 90.5,
+      "standard_expense_rate": 20.1,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701401",
+      "industry_name": "제과점업",
+      "simple_expense_rate": 88.0,
+      "standard_expense_rate": 17.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701501",
+      "industry_name": "커피 음료점업",
+      "simple_expense_rate": 88.5,
+      "standard_expense_rate": 17.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701601",
+      "industry_name": "주점업(일반)",
+      "simple_expense_rate": 87.0,
+      "standard_expense_rate": 16.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "701602",
+      "industry_name": "맥주전문점",
+      "simple_expense_rate": 87.5,
+      "standard_expense_rate": 16.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523110",
+      "industry_name": "슈퍼마켓 및 잡화점",
+      "simple_expense_rate": 91.5,
+      "standard_expense_rate": 10.2,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523210",
+      "industry_name": "의류 소매업",
+      "simple_expense_rate": 81.2,
+      "standard_expense_rate": 15.3,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523310",
+      "industry_name": "전자제품 소매업",
+      "simple_expense_rate": 84.5,
+      "standard_expense_rate": 12.1,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523410",
+      "industry_name": "의약품 소매업",
+      "simple_expense_rate": 82.0,
+      "standard_expense_rate": 13.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523510",
+      "industry_name": "가구 소매업",
+      "simple_expense_rate": 79.5,
+      "standard_expense_rate": 16.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523610",
+      "industry_name": "도서 소매업",
+      "simple_expense_rate": 83.0,
+      "standard_expense_rate": 14.2,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523710",
+      "industry_name": "스포츠용품 소매업",
+      "simple_expense_rate": 80.5,
+      "standard_expense_rate": 16.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523810",
+      "industry_name": "꽃 소매업",
+      "simple_expense_rate": 85.0,
+      "standard_expense_rate": 13.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "523910",
+      "industry_name": "귀금속 소매업",
+      "simple_expense_rate": 83.5,
+      "standard_expense_rate": 10.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "524010",
+      "industry_name": "화장품 소매업",
+      "simple_expense_rate": 82.5,
+      "standard_expense_rate": 14.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "492101",
+      "industry_name": "일반택시 운송업",
+      "simple_expense_rate": 79.4,
+      "standard_expense_rate": 18.1,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "492102",
+      "industry_name": "개인택시 운송업",
+      "simple_expense_rate": 79.4,
+      "standard_expense_rate": 18.1,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "492201",
+      "industry_name": "화물자동차 운송업",
+      "simple_expense_rate": 83.8,
+      "standard_expense_rate": 11.7,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "493001",
+      "industry_name": "퀵서비스업",
+      "simple_expense_rate": 84.0,
+      "standard_expense_rate": 15.2,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "505001",
+      "industry_name": "자동차 연료 판매업(주유소)",
+      "simple_expense_rate": 94.5,
+      "standard_expense_rate": 4.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "505101",
+      "industry_name": "자동차 수리업",
+      "simple_expense_rate": 72.0,
+      "standard_expense_rate": 21.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "551001",
+      "industry_name": "호텔업",
+      "simple_expense_rate": 62.1,
+      "standard_expense_rate": 24.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "551101",
+      "industry_name": "모텔/여관업",
+      "simple_expense_rate": 65.5,
+      "standard_expense_rate": 22.3,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "551201",
+      "industry_name": "민박업",
+      "simple_expense_rate": 70.0,
+      "standard_expense_rate": 18.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "551301",
+      "industry_name": "콘도미니엄업",
+      "simple_expense_rate": 63.5,
+      "standard_expense_rate": 23.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "855001",
+      "industry_name": "학원업(입시)",
+      "simple_expense_rate": 64.2,
+      "standard_expense_rate": 22.1,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "855101",
+      "industry_name": "학원업(예체능)",
+      "simple_expense_rate": 65.8,
+      "standard_expense_rate": 20.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "855201",
+      "industry_name": "외국어학원",
+      "simple_expense_rate": 63.5,
+      "standard_expense_rate": 22.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "855301",
+      "industry_name": "컴퓨터학원",
+      "simple_expense_rate": 67.0,
+      "standard_expense_rate": 19.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "855401",
+      "industry_name": "과외교습",
+      "simple_expense_rate": 69.5,
+      "standard_expense_rate": 18.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "741001",
+      "industry_name": "법무사",
+      "simple_expense_rate": 52.3,
+      "standard_expense_rate": 25.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "741101",
+      "industry_name": "세무사",
+      "simple_expense_rate": 54.0,
+      "standard_expense_rate": 24.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "741201",
+      "industry_name": "공인중개사",
+      "simple_expense_rate": 56.5,
+      "standard_expense_rate": 23.2,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "741301",
+      "industry_name": "건축사",
+      "simple_expense_rate": 55.8,
+      "standard_expense_rate": 24.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "741401",
+      "industry_name": "컨설팅업",
+      "simple_expense_rate": 57.5,
+      "standard_expense_rate": 22.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "741501",
+      "industry_name": "광고업",
+      "simple_expense_rate": 60.0,
+      "standard_expense_rate": 21.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "742001",
+      "industry_name": "의사(일반의)",
+      "simple_expense_rate": 52.5,
+      "standard_expense_rate": 21.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "742101",
+      "industry_name": "치과의사",
+      "simple_expense_rate": 51.0,
+      "standard_expense_rate": 22.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "742201",
+      "industry_name": "한의사",
+      "simple_expense_rate": 53.5,
+      "standard_expense_rate": 20.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "742301",
+      "industry_name": "약사",
+      "simple_expense_rate": 79.0,
+      "standard_expense_rate": 15.2,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "742401",
+      "industry_name": "수의사",
+      "simple_expense_rate": 55.0,
+      "standard_expense_rate": 23.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "720001",
+      "industry_name": "소프트웨어 개발업",
+      "simple_expense_rate": 64.1,
+      "standard_expense_rate": 16.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "720101",
+      "industry_name": "IT 컨설팅업",
+      "simple_expense_rate": 63.5,
+      "standard_expense_rate": 17.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "720201",
+      "industry_name": "웹사이트 개발업",
+      "simple_expense_rate": 65.0,
+      "standard_expense_rate": 16.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "720301",
+      "industry_name": "게임 소프트웨어 개발업",
+      "simple_expense_rate": 64.5,
+      "standard_expense_rate": 17.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "930001",
+      "industry_name": "미용업",
+      "simple_expense_rate": 67.5,
+      "standard_expense_rate": 19.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "930101",
+      "industry_name": "이용업",
+      "simple_expense_rate": 69.5,
+      "standard_expense_rate": 18.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "930201",
+      "industry_name": "피부미용업",
+      "simple_expense_rate": 66.0,
+      "standard_expense_rate": 20.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "931001",
+      "industry_name": "헬스클럽업",
+      "simple_expense_rate": 60.5,
+      "standard_expense_rate": 22.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "931101",
+      "industry_name": "골프연습장업",
+      "simple_expense_rate": 58.5,
+      "standard_expense_rate": 23.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "931201",
+      "industry_name": "스포츠센터업",
+      "simple_expense_rate": 59.5,
+      "standard_expense_rate": 22.8,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "960001",
+      "industry_name": "세탁업",
+      "simple_expense_rate": 72.5,
+      "standard_expense_rate": 18.2,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "960101",
+      "industry_name": "인테리어업",
+      "simple_expense_rate": 75.0,
+      "standard_expense_rate": 16.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "960201",
+      "industry_name": "청소대행업",
+      "simple_expense_rate": 78.5,
+      "standard_expense_rate": 13.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "960301",
+      "industry_name": "사진관업",
+      "simple_expense_rate": 68.5,
+      "standard_expense_rate": 19.5,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "960401",
+      "industry_name": "노래방업",
+      "simple_expense_rate": 65.5,
+      "standard_expense_rate": 21.0,
+      "self_employed_rate": null,
+      "note": ""
+    },
+    {
+      "industry_code": "960501",
+      "industry_name": "당구장업",
+      "simple_expense_rate": 67.0,
+      "standard_expense_rate": 20.5,
+      "self_employed_rate": null,
+      "note": ""
+    }
+  ],
+  "metadata": {
+    "source": "기준(단순)경비율.pdf",
+    "year": 2025,
+    "total_entries": 62
+  }
+}

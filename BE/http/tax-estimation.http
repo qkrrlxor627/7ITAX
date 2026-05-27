@@ -1,0 +1,7 @@
+### 세금 예상액 조회 (현재 연도)
+GET {{baseUrl}}/tax-estimation
+Authorization: Bearer {{accessToken}}
+
+### 세금 예상액 조회 (특정 연도)
+GET {{baseUrl}}/tax-estimation?year=2025
+Authorization: Bearer {{accessToken}}

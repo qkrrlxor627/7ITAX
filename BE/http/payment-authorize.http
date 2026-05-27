@@ -1,0 +1,29 @@
+### 결제 승인
+POST {{baseUrl}}/payments/authorize
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cardId": 1,
+  "amount": 50000,
+  "currency": "KRW",
+  "merchantId": 1,
+  "merchantName": "스타벅스 강남점",
+  "merchantCategoryCode": "5812",
+  "paymentMethod": "OFFLINE",
+  "purpose": "BUSINESS"
+}
+
+### 결제 확정
+POST {{baseUrl}}/payments/1/capture
+Authorization: Bearer {{accessToken}}
+
+### 결제 취소
+POST {{baseUrl}}/payments/1/cancel
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "cancelAmount": 50000,
+  "reason": "단순 변심"
+}

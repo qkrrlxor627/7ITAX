@@ -1,0 +1,312 @@
+@baseUrl = http://localhost:8000/api/v1
+
+# ============================================================
+# Tax Classifier — 세목 분류 API 테스트
+# POST /api/v1/transaction/classify
+# ============================================================
+
+# ------------------------------------------------------------
+# 높은 confidence 예상 (로컬 모델 직접 분류)
+# ------------------------------------------------------------
+
+### [매출] 매출 관련 거래
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "온라인 쇼핑몰 상품 판매 대금 입금"
+}
+
+###
+
+### [상품·원재료 매입] 원재료 구매
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "원재료 대량 구매 대금 지급"
+}
+
+###
+
+### [급료] 직원 급여
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "3월 직원 급여 지급"
+}
+
+###
+
+### [제세공과금] 세금 납부
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "재산세 납부"
+}
+
+###
+
+### [임차료] 사무실 월세
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "사무실 월세 납부"
+}
+
+###
+
+### [지급이자] 이자 납부
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "은행 대출 이자 납부"
+}
+
+###
+
+### [접대비] 거래처 접대
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "거래처 접대 저녁 식사비 15만원"
+}
+> 응답 기대: reason="거래처 접대 관련 비용", legal_basis="소득세법 제35조"
+
+###
+
+### [기부금] 기부
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "사회복지법인 기부금 납부"
+}
+
+###
+
+### [감가상각비] 감가상각
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "업무용 차량 감가상각비 계상"
+}
+
+###
+
+### [차량유지비] 차량 관련
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "업무용 차량 주유비 결제"
+}
+
+###
+
+### [지급수수료] 수수료
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "세무사 자문 수수료 지급"
+}
+
+###
+
+### [소모품비] 사무용품
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "사무용 복사용지 및 토너 구매"
+}
+# > 응답 기대: reason="사무용품 등 소모성 자재 구입", legal_basis="소득세법 제33조"
+
+###
+
+### [복리후생비] 직원 복지
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "직원 야근 식대 지급"
+}
+
+###
+
+### [운반비] 배송비
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "택배 배송비 지급"
+}
+
+###
+
+### [광고선전비] 광고비
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "네이버 키워드 광고비 결제"
+}
+
+###
+
+### [여비교통비] 교통비
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "출장 택시비 결제"
+}
+
+###
+
+### [기타경비] 기타
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "기타 잡비 지출"
+}
+
+###
+
+### [고정자산 매입] 자산 구매
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "업무용 노트북 구매"
+}
+
+###
+
+### [고정자산 매도] 자산 매각
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "구형 업무용 차량 매각 대금"
+}
+
+###
+
+### [기초/기말 재고] 재고
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "기말 재고자산 실사 반영"
+}
+
+# ------------------------------------------------------------
+# 낮은 confidence 예상 (LLM fallback 트리거)
+# ------------------------------------------------------------
+
+###
+
+### [Fallback 테스트] 모호한 거래 내역
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "기타 잡비"
+}
+
+###
+
+### [Fallback 테스트] 짧고 애매한 입력
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "카드결제"
+}
+
+# ------------------------------------------------------------
+# 에러 케이스
+# ------------------------------------------------------------
+
+###
+
+### [에러] 빈 문자열 → Validation Error (min_length=1)
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": ""
+}
+
+###
+
+### [에러] description 필드 누락
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+}
+
+###
+
+### [에러] 500자 초과
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다 이것은 매우 긴 거래 내역 설명입니다"
+}
+
+# ------------------------------------------------------------
+# E05: 세목 분류 설명 (reason, legal_basis) 테스트
+# 응답에 reason, legal_basis 필드가 포함되는지 확인
+# ExplanationService가 활성화된 환경에서 테스트
+# ------------------------------------------------------------
+
+###
+
+### [소모품비] 명확한 세목 — reason/legal_basis 기대
+# 기대 응답 (ExplanationService 활성 시):
+#   reason: "사무용품 등 소모성 자재 구입에 해당"
+#   legal_basis: "소득세법 제33조" (관련 조문)
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "사무실 프린터 토너 카트리지 구매"
+}
+
+###
+
+### [접대비] 명확한 세목 — reason/legal_basis 기대
+# 기대 응답 (ExplanationService 활성 시):
+#   reason: "거래처 접대 관련 비용에 해당"
+#   legal_basis: "소득세법 제35조" (접대비 한도 관련)
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "거래처 담당자 점심 접대 식사비 8만원"
+}
+
+###
+
+### [Fallback] 모호한 입력 — reason 일반 설명 기대
+# 기대 응답 (ExplanationService 활성 시):
+#   reason: 일반적인 분류 설명 (매핑 불가 시 기본값)
+#   legal_basis: "" (근거 불명확)
+POST {{baseUrl}}/transaction/classify
+Content-Type: application/json
+
+{
+  "description": "카드결제 승인"
+}

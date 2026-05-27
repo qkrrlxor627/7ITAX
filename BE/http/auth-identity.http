@@ -1,0 +1,14 @@
+### 본인인증 요청
+POST {{baseUrl}}/auth/verify-identity
+Content-Type: application/json
+
+{
+  "name": "홍길동",
+  "birthDate": "1990-01-01",
+  "gender": "M",
+  "phoneNumber": "01012345678"
+}
+
+> {%
+  client.global.set("verifyToken", response.body.data.verifyToken);
+%}

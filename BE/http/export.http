@@ -1,0 +1,23 @@
+### 간편장부 CSV 내보내기 (현재 연도)
+GET {{baseUrl}}/export/book-entries
+Authorization: Bearer {{accessToken}}
+
+### 간편장부 CSV 내보내기 (특정 연도)
+GET {{baseUrl}}/export/book-entries?year=2025
+Authorization: Bearer {{accessToken}}
+
+### 부가세 요약 CSV 내보내기 (현재 연도, 상반기)
+GET {{baseUrl}}/export/vat?half=1
+Authorization: Bearer {{accessToken}}
+
+### 부가세 요약 CSV 내보내기 (특정 연도, 하반기)
+GET {{baseUrl}}/export/vat?year=2025&half=2
+Authorization: Bearer {{accessToken}}
+
+### 종합소득세 요약 CSV 내보내기 (현재 연도)
+GET {{baseUrl}}/export/income-tax
+Authorization: Bearer {{accessToken}}
+
+### 종합소득세 요약 CSV 내보내기 (특정 연도)
+GET {{baseUrl}}/export/income-tax?year=2025
+Authorization: Bearer {{accessToken}}

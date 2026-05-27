@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: tax7i
+  config:
+    import: optional:classpath:application-local.yaml
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tax_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
+        default_batch_fetch_size: 100
+    open-in-view: false
+
+encryption:
+  aes-key: ${AES_ENCRYPTION_KEY}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration: 1800000
+  refresh-expiration: 604800000
+
+app:
+  test-login:
+    enabled: false
+
+ssafy:
+  finance:
+    base-url: https://finopenapi.ssafy.io/ssafy/api/v1/edu
+    api-key: ${SSAFY_FINANCE_API_KEY}
+    institution-code: "00100"
+    fintech-app-no: "001"
+    user-key: ${SSAFY_FINANCE_USER_KEY:}
+  oauth:
+    authorization-uri: https://project.ssafy.com/oauth/sso-check
+    token-uri: https://project.ssafy.com/ssafy/oauth2/token
+    user-info-uri: https://project.ssafy.com/ssafy/resources/userInfo
+    client-id: ${SSAFY_CLIENT_ID}
+    client-secret: ${SSAFY_CLIENT_SECRET}
+    redirect-uri: ${SSAFY_REDIRECT_URI}
+
+tax:
+  office-code: "0305"
+
+ai:
+  base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}
+  connect-timeout: 3
+  read-timeout: 10
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+fcm:
+  enabled: ${FCM_ENABLED:false}
+  service-account-path: ${FCM_SERVICE_ACCOUNT_PATH:}
+
+solapi:
+  api-key: ${SOLAPI_API_KEY}
+  api-secret: ${SOLAPI_API_SECRET}
+  sender-phone: ${SOLAPI_SENDER_PHONE}

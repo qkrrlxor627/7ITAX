@@ -1,0 +1,27 @@
+### PIN 설정 (본인인증 후)
+POST {{baseUrl}}/auth/setup-pin
+Content-Type: application/json
+X-Verify-Token: {{verifyToken}}
+
+{
+  "pin": "123456"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+  client.global.set("refreshToken", response.body.data.refreshToken);
+%}
+
+### PIN 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "phoneNumber": "01012345678",
+  "pin": "123456"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+  client.global.set("refreshToken", response.body.data.refreshToken);
+%}

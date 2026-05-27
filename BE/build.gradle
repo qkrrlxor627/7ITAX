@@ -1,0 +1,73 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.11'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.ssafy'
+version = '0.0.1-SNAPSHOT'
+description = 'SSAFY 14th, 7I-Tax'
+
+// Redirect build output to ASCII-safe path to avoid ClassNotFoundException on Korean paths (local Windows only)
+if (System.getProperty('os.name')?.toLowerCase()?.contains('windows')) {
+	layout.buildDirectory = file("C:/tmp/tax7i-build")
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.retry:spring-retry'
+	implementation 'org.springframework:spring-aspects'
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
+	implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
+	implementation 'org.apache.poi:poi-ooxml:5.2.5'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'io.hypersistence:hypersistence-tsid:2.1.4'
+	implementation 'com.solapi:sdk:1.1.0'
+	implementation 'com.google.firebase:firebase-admin:9.4.3'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'org.postgresql:postgresql'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testRuntimeOnly 'com.h2database:h2'
+}
+
+tasks.named('test') {
+	useJUnitPlatform {
+		excludeTags 'integration'
+	}
+	jvmArgs '-Dfile.encoding=UTF-8', '-Dsun.jnu.encoding=UTF-8'
+}
+
+tasks.register('integrationTest', Test) {
+	description = 'Runs integration tests against real external APIs'
+	group = 'verification'
+	shouldRunAfter tasks.named('test')
+	useJUnitPlatform {
+		includeTags 'integration'
+	}
+}
