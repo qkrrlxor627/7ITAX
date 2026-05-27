@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from openai import APITimeoutError, AuthenticationError, RateLimitError
+from anthropic import APITimeoutError, AuthenticationError, RateLimitError
 from tenacity import RetryError
 
 from app.core.config import Settings
@@ -244,7 +244,7 @@ class TestCallLlm:
             intent_classifier=make_mock_classifier(),
         )
         mock_ainvoke = AsyncMock(side_effect=APITimeoutError(request=None))
-        with patch("langchain_openai.ChatOpenAI.ainvoke", mock_ainvoke):
+        with patch("langchain_anthropic.ChatAnthropic.ainvoke", mock_ainvoke):
             with pytest.raises(RetryError):
                 await service._call_llm([])
             assert mock_ainvoke.call_count == 3
@@ -259,7 +259,7 @@ class TestCallLlm:
         mock_response.status_code = 401
         mock_response.json.return_value = {"error": {"message": "invalid key"}}
         with patch(
-            "langchain_openai.ChatOpenAI.ainvoke",
+            "langchain_anthropic.ChatAnthropic.ainvoke",
             new_callable=AsyncMock,
             side_effect=AuthenticationError(
                 message="auth failed", response=mock_response, body=None
@@ -278,7 +278,7 @@ class TestCallLlm:
         mock_response.status_code = 429
         mock_response.json.return_value = {"error": {"message": "rate limit"}}
         with patch(
-            "langchain_openai.ChatOpenAI.ainvoke",
+            "langchain_anthropic.ChatAnthropic.ainvoke",
             new_callable=AsyncMock,
             side_effect=RateLimitError(
                 message="rate limit", response=mock_response, body=None

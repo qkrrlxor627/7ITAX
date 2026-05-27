@@ -20,13 +20,6 @@ jwt:
   access-expiration: 1800000
   refresh-expiration: 604800000
 
-ssafy:
-  finance:
-    base-url: https://finopenapi.ssafy.io/ssafy/api/v1/edu
-    api-key: test-finance-api-key
-    institution-code: "00100"
-    fintech-app-no: "001"
-
 app:
   test-login:
     enabled: true

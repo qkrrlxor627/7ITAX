@@ -11,7 +11,8 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "cards", indexes = {
-        @Index(name = "idx_card_user_id", columnList = "user_id")
+        @Index(name = "idx_card_user_id", columnList = "user_id"),
+        @Index(name = "idx_card_no_key", columnList = "card_no_key")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -41,6 +42,13 @@ public class Card extends BaseTimeEntity {
     @Convert(converter = AesEncryptor.class)
     @Column(nullable = false, length = 512)
     private String cardNo;
+
+    /**
+     * 평문 조회 키. cardNo는 AES/GCM(랜덤 IV)으로 암호화되어 매번 암호문이 달라
+     * 컬럼으로 조회할 수 없으므로, 평문 인덱스 키를 별도로 보관해 조회에 사용한다.
+     */
+    @Column(name = "card_no_key", unique = true)
+    private String cardNoKey;
 
     @Convert(converter = AesEncryptor.class)
     @Column(nullable = false, length = 512)
@@ -77,6 +85,8 @@ public class Card extends BaseTimeEntity {
         this.last4Digits = last4Digits;
         this.isDefault = false;
         this.cardNo = cardNo;
+        // 평문 조회 키를 빌더 생성 시점에 자동 복사 (CardService 변경 불필요)
+        this.cardNoKey = cardNo;
         this.cvc = cvc;
         this.cardUniqueNo = cardUniqueNo;
         this.ssafyAccountNo = ssafyAccountNo;

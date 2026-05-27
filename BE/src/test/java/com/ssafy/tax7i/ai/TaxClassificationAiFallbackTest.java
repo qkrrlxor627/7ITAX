@@ -49,7 +49,7 @@ class TaxClassificationAiFallbackTest {
     @DisplayName("MCC 결정 실패 + AI 분류 성공 → AI RECOMMENDED 반환")
     void MCC_없음_AI_성공() {
         ClassificationRequest request = new ClassificationRequest(
-                "알수없는가맹점", null, 50000L, null, null, 1L);
+                "알수없는가맹점", null, 50000L, null, null, 1L, null);
 
         // MCC 결정 실패 (가맹점명으로도 못 찾음)
         given(classificationCacheService.getMerchantByName("알수없는가맹점")).willReturn(Optional.empty());
@@ -71,7 +71,7 @@ class TaxClassificationAiFallbackTest {
     @DisplayName("MCC 결정 실패 + AI 장애 → 기존 NEEDS_CONFIRMATION 폴백")
     void MCC_없음_AI_실패() {
         ClassificationRequest request = new ClassificationRequest(
-                "알수없는가맹점", null, 50000L, null, null, 1L);
+                "알수없는가맹점", null, 50000L, null, null, 1L, null);
 
         given(classificationCacheService.getMerchantByName("알수없는가맹점")).willReturn(Optional.empty());
         given(merchantRepository.findByMerchantNameContainedIn(anyString())).willReturn(Collections.emptyList());
@@ -87,7 +87,7 @@ class TaxClassificationAiFallbackTest {
     @DisplayName("MCC 룰 없음 + AI 분류 성공 → AI RECOMMENDED 반환")
     void 룰_없음_AI_성공() {
         ClassificationRequest request = new ClassificationRequest(
-                "테스트가맹점", "9999", 50000L, null, null, 1L);
+                "테스트가맹점", "9999", 50000L, null, null, 1L, null);
 
         given(classificationCacheService.getMccRules("9999")).willReturn(Collections.emptyList());
 
@@ -105,7 +105,7 @@ class TaxClassificationAiFallbackTest {
     @DisplayName("Tier A 매칭 성공 → AI 호출 안 함")
     void TierA_성공시_AI_미호출() {
         ClassificationRequest request = new ClassificationRequest(
-                "교보문고", "5942", 30000L, null, null, 1L);
+                "교보문고", "5942", 30000L, null, null, 1L, null);
 
         MccTaxRule tierARule = createTierARule("5942", "도서인쇄비", 95);
         given(classificationCacheService.getMccRules("5942")).willReturn(List.of(tierARule));

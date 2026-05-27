@@ -156,7 +156,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("5045")).willReturn(List.of(rule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "11번가", "5045", 80000L, null, null, null);
+                "11번가", "5045", 80000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -174,7 +174,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("4813")).willReturn(List.of(rule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "KT", "4813", 55000L, null, null, null);
+                "KT", "4813", 55000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -191,7 +191,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("5045")).willReturn(List.of(amountRule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "11번가", "5045", 500_000L, null, null, null);
+                "11번가", "5045", 500_000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -207,7 +207,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("5045")).willReturn(List.of(amountRule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "11번가", "5045", 2_000_000L, null, null, null);
+                "11번가", "5045", 2_000_000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -223,7 +223,7 @@ class ClassificationServiceTest {
         given(keywordMappingRepository.findByMcc("5045")).willReturn(List.of());
 
         ClassificationRequest request = new ClassificationRequest(
-                "11번가", "5045", null, null, null, null);
+                "11번가", "5045", null, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -240,7 +240,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("5817")).willReturn(List.of(keywordRule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "AWS 서울 리전", "5817", 150000L, null, null, null);
+                "AWS 서울 리전", "5817", 150000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -263,7 +263,7 @@ class ClassificationServiceTest {
         given(keywordMappingRepository.findByMcc("5817")).willReturn(List.of(mapping));
 
         ClassificationRequest request = new ClassificationRequest(
-                "GITHUB INC", "5817", 12000L, null, null, null);
+                "GITHUB INC", "5817", 12000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -280,7 +280,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("9999")).willReturn(List.of(fallbackRule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "알수없는가맹점", "9999", 30000L, null, null, null);
+                "알수없는가맹점", "9999", 30000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -294,7 +294,7 @@ class ClassificationServiceTest {
         given(merchantRepository.findByMerchantNameContainedIn(anyString())).willReturn(List.of());
 
         ClassificationRequest request = new ClassificationRequest(
-                "알수없는가맹점", null, 30000L, null, null, null);
+                "알수없는가맹점", null, 30000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -308,7 +308,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("0000")).willReturn(List.of());
 
         ClassificationRequest request = new ClassificationRequest(
-                "특수가맹점", "0000", 10000L, null, null, null);
+                "특수가맹점", "0000", 10000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -324,7 +324,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("5812")).willReturn(List.of(rule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "한식당", "5812", 50000L, null, null, null);
+                "한식당", "5812", 50000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -341,7 +341,7 @@ class ClassificationServiceTest {
         given(entertainmentLimitService.getUsedEntertainmentAmount(1L)).willReturn(1_000_000L);
 
         ClassificationRequest request = new ClassificationRequest(
-                "한식당", "5812", 50000L, null, true, 1L);
+                "한식당", "5812", 50000L, null, true, 1L, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -356,7 +356,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("5812")).willReturn(List.of(rule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "한식당", "5812", 15000L, null, false, null);
+                "한식당", "5812", 15000L, null, false, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -376,7 +376,7 @@ class ClassificationServiceTest {
         given(entertainmentLimitService.getUsedEntertainmentAmount(1L)).willReturn(3_000_000L);
 
         ClassificationRequest request = new ClassificationRequest(
-                "스테이크 하우스", "5812", 200000L, null, null, 1L);
+                "스테이크 하우스", "5812", 200000L, null, null, 1L, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -398,7 +398,7 @@ class ClassificationServiceTest {
         given(entertainmentLimitService.getUsedEntertainmentAmount(1L)).willReturn(13_000_000L);
 
         ClassificationRequest request = new ClassificationRequest(
-                "고급 일식당", "5812", 500000L, null, null, 1L);
+                "고급 일식당", "5812", 500000L, null, null, 1L, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -414,7 +414,7 @@ class ClassificationServiceTest {
         given(classificationCacheService.getMccRules("5812")).willReturn(List.of(rule));
 
         ClassificationRequest request = new ClassificationRequest(
-                "스테이크 하우스", "5812", 200000L, null, null, null);
+                "스테이크 하우스", "5812", 200000L, null, null, null, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 
@@ -433,7 +433,7 @@ class ClassificationServiceTest {
         given(entertainmentLimitService.getUsedEntertainmentAmount(1L)).willReturn(500_000L);
 
         ClassificationRequest request = new ClassificationRequest(
-                "거래처 식사", "5812", 100000L, null, null, 1L);
+                "거래처 식사", "5812", 100000L, null, null, 1L, null);
 
         ClassificationResult result = taxClassificationService.classify(request);
 

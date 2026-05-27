@@ -126,14 +126,14 @@ async def init_services() -> None:
         with open(mapping_path, encoding="utf-8") as f:
             category_mappings = json.load(f)
 
-        from langchain_openai import ChatOpenAI
+        from langchain_anthropic import ChatAnthropic
 
-        explanation_llm = ChatOpenAI(
-            base_url=settings.gms_base_url,
-            api_key=settings.gms_api_key,
-            model="gpt-4o-mini",
+        explanation_llm = ChatAnthropic(
+            api_key=settings.anthropic_api_key,
+            model=settings.claude_model_haiku,
             temperature=0.3,
             timeout=10,
+            max_tokens=1024,
         )
         _explanation_service = ExplanationService(
             retrieval_service=_retrieval_service,

@@ -39,9 +39,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      GMS_API_KEY: ${GMS_API_KEY}
-      GMS_BASE_URL: ${GMS_BASE_URL:-https://gms.ssafy.io/gmsapi/api.openai.com/v1}
-      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      CLAUDE_MODEL_OPUS: ${CLAUDE_MODEL_OPUS:-claude-opus-4-7}
+      CLAUDE_MODEL_HAIKU: ${CLAUDE_MODEL_HAIKU:-claude-haiku-4-5-20251001}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
       DEBUG: ${AI_DEBUG:-false}
       ALLOWED_ORIGINS: '["http://localhost:3000"]'
       BACKEND_BASE_URL: http://host.docker.internal:8080

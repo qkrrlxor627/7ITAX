@@ -1,7 +1,7 @@
 import logging
 
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from app.core.config import Settings
 from app.core.exceptions import VectorStoreError
@@ -16,12 +16,10 @@ class VectorStoreService:
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.embeddings = OpenAIEmbeddings(
-            model=settings.embedding_model,
-            openai_api_key=settings.gms_api_key,
-            openai_api_base=settings.gms_base_url,
-            chunk_size=10,
-            check_embedding_ctx_length=False,
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name=settings.embedding_model,
+            model_kwargs={"device": settings.embedding_device},
+            encode_kwargs={"normalize_embeddings": True},
         )
         self.vectorstore = Chroma(
             collection_name=self.COLLECTION_NAME,

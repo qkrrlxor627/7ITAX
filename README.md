@@ -27,10 +27,11 @@ S14P21C203/
 |------|------|
 | Backend | Java 17, Spring Boot 3.x, Spring Security, JPA, Redis |
 | Frontend | Kotlin, Jetpack Compose, Hilt, Retrofit, CameraX |
-| AI | Python 3.11, FastAPI, LangChain, ChromaDB, OpenAI API |
+| AI | Python 3.11, FastAPI, LangChain, ChromaDB, Anthropic Claude API, 로컬 HF 임베딩(bge-m3) |
 | Database | PostgreSQL 16, Redis 7 |
 | Infra | Docker, Jenkins, Nginx |
-| 외부 API | SSAFY 금융망, GMS (OpenAI 프록시), Solapi SMS, Firebase |
+| 금융 | 자체 구현 로컬 뱅킹(원장/잔액/이체) — 외부 금융망 미사용 |
+| 외부 API | Anthropic Claude, Solapi SMS, Firebase(선택) |
 
 ## 주요 기능
 
@@ -61,8 +62,8 @@ S14P21C203/
 ### 로컬 개발 (Docker Compose)
 
 ```bash
-# 인프라 기동 (PostgreSQL, Redis, AI)
-GMS_API_KEY=<키> AES_ENCRYPTION_KEY=<키> docker compose up -d
+# 인프라 기동 (PostgreSQL, Redis, AI, Worker)
+ANTHROPIC_API_KEY=<키> AES_ENCRYPTION_KEY=<키> JWT_SECRET=<키> docker compose up -d
 
 # Backend
 cd BE && ./gradlew bootRun
@@ -70,6 +71,12 @@ cd BE && ./gradlew bootRun
 # Android
 Android Studio에서 FE/ 프로젝트 열기 → Run
 ```
+
+> 금융 기능은 자체 구현 로컬 뱅킹으로 동작하므로 SSAFY 금융망 키가 필요 없습니다.
+> 계좌/잔액/이체/카드결제는 DB 원장 위에서 처리되며, 신규 계좌는 데모용 시드 잔액을 갖습니다.
+> AI 임베딩은 로컬 모델(`BAAI/bge-m3`)이라 외부 키가 불필요하며, LLM만 `ANTHROPIC_API_KEY`를 사용합니다.
+> 새 엔티티/컬럼(잔액·원장 등)은 JPA `ddl-auto=update`로 자동 생성됩니다.
+> SMS OTP 없이 로컬 시연하려면 백엔드에서 `TEST_LOGIN_ENABLED=true`를 사용하세요.
 
 ### 운영 배포
 

@@ -9,15 +9,13 @@ from app.services.embedding_service import EmbeddingService
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
-        gms_api_key="test-key",
-        gms_base_url="http://fake-gms",
-        llm_model="test-model",
+        anthropic_api_key="test-key",
     )
 
 
 @pytest.fixture
 def service(settings: Settings) -> EmbeddingService:
-    with patch("app.services.embedding_service.OpenAIEmbeddings"):
+    with patch("app.services.embedding_service.HuggingFaceEmbeddings"):
         return EmbeddingService(settings=settings)
 
 

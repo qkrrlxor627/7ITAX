@@ -2,9 +2,9 @@ import logging
 import uuid
 from cachetools import TTLCache
 
+from anthropic import APITimeoutError, AuthenticationError, RateLimitError
+from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-from openai import APITimeoutError, AuthenticationError, RateLimitError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import Settings
@@ -35,19 +35,20 @@ class ChatService:
         cache_service=None,   # Phase 4: 선택적
     ) -> None:
         self.settings = settings
-        self.llm_mini = ChatOpenAI(
-            base_url=settings.gms_base_url,
-            api_key=settings.gms_api_key,
-            model=settings.llm_model_mini,
+        # mini=Haiku (쿼리 재작성 등 가벼운 작업), standard=Opus (메인 챗봇 답변)
+        self.llm_mini = ChatAnthropic(
+            api_key=settings.anthropic_api_key,
+            model=settings.claude_model_haiku,
             temperature=0.7,
             timeout=30,
+            max_tokens=2048,
         )
-        self.llm_standard = ChatOpenAI(
-            base_url=settings.gms_base_url,
-            api_key=settings.gms_api_key,
-            model=settings.llm_model_standard,
+        self.llm_standard = ChatAnthropic(
+            api_key=settings.anthropic_api_key,
+            model=settings.claude_model_opus,
             temperature=0.7,
             timeout=30,
+            max_tokens=2048,
         )
         self.retrieval_service = retrieval_service
         self.intent_classifier = intent_classifier
@@ -139,7 +140,7 @@ class ChatService:
             except Exception as e:
                 logger.warning("캐시 저장 실패 (무시): %s", e)
 
-        return answer, session_id, llm.model_name
+        return answer, session_id, llm.model
 
     def get_history(self, session_id: str) -> list[dict[str, str]]:
         """대화 세션의 히스토리를 반환한다.
@@ -159,7 +160,7 @@ class ChatService:
             for msg in history
         ]
 
-    def _select_llm(self, model_tier: str) -> ChatOpenAI:
+    def _select_llm(self, model_tier: str) -> ChatAnthropic:
         """모델 티어에 따라 LLM 인스턴스를 선택한다."""
         if model_tier == "standard":
             return self.llm_standard
@@ -173,7 +174,7 @@ class ChatService:
     async def _call_llm(
         self,
         messages: list[BaseMessage],
-        llm: ChatOpenAI | None = None,
+        llm: ChatAnthropic | None = None,
     ) -> str:
         """LLM에 메시지를 전달하고 응답을 받는다.
 

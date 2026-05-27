@@ -10,14 +10,12 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = False
 
-    # GMS 프록시 (SSAFY OpenAI API)
-    gms_api_key: str
-    gms_base_url: str
-    llm_model: str
+    # Anthropic Claude
+    anthropic_api_key: str
 
-    # 모델 티어링
-    llm_model_mini: str = "gpt-4o-mini"
-    llm_model_standard: str = "gpt-4o"
+    # 모델 티어링 (standard=메인 챗봇, mini=쿼리 재작성·분류 설명)
+    claude_model_opus: str = "claude-opus-4-7"
+    claude_model_haiku: str = "claude-haiku-4-5-20251001"
 
     # 캐시 설정
     cache_enabled: bool = True
@@ -28,7 +26,9 @@ class Settings(BaseSettings):
     # RAG 검색 활성화 (False 시 LLM만으로 응답)
     rag_enabled: bool = True
     chroma_persist_directory: str = "./data/chroma"
-    embedding_model: str = "text-embedding-3-small"
+    # 임베딩: 로컬 HuggingFace 모델 (Claude는 임베딩 API 미제공)
+    embedding_model: str = "BAAI/bge-m3"
+    embedding_device: str = "cpu"
 
     # 백엔드 API
     backend_base_url: str = "http://localhost:8080"

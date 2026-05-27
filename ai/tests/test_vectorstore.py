@@ -9,17 +9,15 @@ from app.services.vectorstore import VectorStoreService
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
-        gms_api_key="test-key",
-        gms_base_url="http://fake-llm",
-        llm_model="test-model",
+        anthropic_api_key="test-key",
     )
 
 
 @pytest.fixture
 def mock_vectorstore_service(settings: Settings) -> VectorStoreService:
-    """OpenAIEmbeddings와 Chroma를 Mock 처리한 VectorStoreService."""
+    """HuggingFaceEmbeddings와 Chroma를 Mock 처리한 VectorStoreService."""
     with (
-        patch("app.services.vectorstore.OpenAIEmbeddings") as mock_embeddings_cls,
+        patch("app.services.vectorstore.HuggingFaceEmbeddings") as mock_embeddings_cls,
         patch("app.services.vectorstore.Chroma") as mock_chroma_cls,
     ):
         mock_embeddings_cls.return_value = MagicMock()
@@ -41,31 +39,29 @@ class TestVectorStoreServiceInit:
     def test_instantiation_with_correct_settings(self, settings: Settings):
         """Settings를 전달하면 VectorStoreService 인스턴스가 생성된다."""
         with (
-            patch("app.services.vectorstore.OpenAIEmbeddings"),
+            patch("app.services.vectorstore.HuggingFaceEmbeddings"),
             patch("app.services.vectorstore.Chroma"),
         ):
             service = VectorStoreService(settings=settings)
             assert service is not None
 
-    def test_openai_embeddings_called_with_correct_params(self, settings: Settings):
-        """OpenAIEmbeddings가 Settings의 값으로 초기화된다."""
+    def test_embeddings_called_with_correct_params(self, settings: Settings):
+        """HuggingFaceEmbeddings가 Settings의 값으로 초기화된다."""
         with (
-            patch("app.services.vectorstore.OpenAIEmbeddings") as mock_embeddings_cls,
+            patch("app.services.vectorstore.HuggingFaceEmbeddings") as mock_embeddings_cls,
             patch("app.services.vectorstore.Chroma"),
         ):
             VectorStoreService(settings=settings)
             mock_embeddings_cls.assert_called_once_with(
-                model=settings.embedding_model,
-                openai_api_key=settings.gms_api_key,
-                openai_api_base=settings.gms_base_url,
-                chunk_size=10,
-                check_embedding_ctx_length=False,
+                model_name=settings.embedding_model,
+                model_kwargs={"device": settings.embedding_device},
+                encode_kwargs={"normalize_embeddings": True},
             )
 
     def test_chroma_called_with_correct_params(self, settings: Settings):
         """Chroma가 올바른 collection_name과 persist_directory로 초기화된다."""
         with (
-            patch("app.services.vectorstore.OpenAIEmbeddings") as mock_embeddings_cls,
+            patch("app.services.vectorstore.HuggingFaceEmbeddings") as mock_embeddings_cls,
             patch("app.services.vectorstore.Chroma") as mock_chroma_cls,
         ):
             mock_embeddings = MagicMock()

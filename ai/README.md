@@ -27,18 +27,20 @@ cp .env.example .env
 `.env` 파일에서 아래 항목을 설정하세요.
 
 ```dotenv
-# OpenAI (GMS 프록시)
-GMS_API_KEY=실제_API_키
-GMS_BASE_URL=https://gms.ssafy.io/gmsapi/api.openai.com/v1
+# Anthropic Claude
+ANTHROPIC_API_KEY=실제_API_키
 
-# 모델 티어링
-LLM_MODEL_MINI=gpt-4o-mini
-LLM_MODEL_STANDARD=gpt-4o
+# 모델 티어링 (standard=메인 챗봇=Opus, mini=가벼운 작업=Haiku)
+CLAUDE_MODEL_OPUS=claude-opus-4-7
+CLAUDE_MODEL_HAIKU=claude-haiku-4-5-20251001
 
 # RAG (비활성화 시 LLM만 사용)
 RAG_ENABLED=false
 CHROMA_PERSIST_DIRECTORY=./data/chroma
-EMBEDDING_MODEL=text-embedding-3-small
+
+# 임베딩: 로컬 HuggingFace 모델 (외부 API 키 불필요, 첫 실행 시 다운로드)
+EMBEDDING_MODEL=BAAI/bge-m3
+EMBEDDING_DEVICE=cpu
 
 # 시맨틱 캐시
 CACHE_ENABLED=true
@@ -103,14 +105,14 @@ POST /api/v1/chat/
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `answer` | string | AI 응답 텍스트 |
-| `model` | string | 사용된 모델명 (`gpt-4o-mini` 또는 `gpt-4o`) |
+| `model` | string | 사용된 모델명 (`claude-haiku-4-5-20251001` 또는 `claude-opus-4-7`) |
 | `session_id` | string | 세션 ID (이후 대화에 재사용) |
 | `usage` | dict \| null | 토큰 사용량 |
 
 ```json
 {
   "answer": "종합소득세는 개인이 1년간 얻은 모든 소득을 합산하여...",
-  "model": "gpt-4o-mini",
+  "model": "claude-haiku-4-5-20251001",
   "session_id": "addaa282b8cd46fda54bd798a054d8a6",
   "usage": null
 }
@@ -177,14 +179,14 @@ curl http://localhost:8000/api/v1/chat/history/{session_id}
 
 | 인텐트 | 설명 | 검색 전략 | LLM 모델 |
 |--------|------|---------|---------|
-| `TAX_RATE_LOOKUP` | 세율 조회 | 메타데이터 필터 | gpt-4o-mini |
-| `EXPENSE_CLASSIFICATION` | 경비 분류 | 하이브리드 + 백엔드 데이터 | gpt-4o |
-| `DEDUCTION_ELIGIBILITY` | 공제/감면 적격 | 하이브리드 | gpt-4o |
-| `PROCEDURE_GUIDE` | 신고 절차 안내 | 하이브리드 | gpt-4o-mini |
-| `CONCEPT_EXPLANATION` | 세무 개념 설명 | 벡터 | gpt-4o-mini |
-| `CALCULATION` | 세금 계산 | 하이브리드 + 백엔드 데이터 | gpt-4o |
-| `COMPARISON` | 세금 제도 비교 | 멀티 쿼리 | gpt-4o |
-| `GENERAL` | 일반 질문 | 검색 없음 | gpt-4o-mini |
+| `TAX_RATE_LOOKUP` | 세율 조회 | 메타데이터 필터 | claude-haiku-4-5-20251001 |
+| `EXPENSE_CLASSIFICATION` | 경비 분류 | 하이브리드 + 백엔드 데이터 | claude-opus-4-7 |
+| `DEDUCTION_ELIGIBILITY` | 공제/감면 적격 | 하이브리드 | claude-opus-4-7 |
+| `PROCEDURE_GUIDE` | 신고 절차 안내 | 하이브리드 | claude-haiku-4-5-20251001 |
+| `CONCEPT_EXPLANATION` | 세무 개념 설명 | 벡터 | claude-haiku-4-5-20251001 |
+| `CALCULATION` | 세금 계산 | 하이브리드 + 백엔드 데이터 | claude-opus-4-7 |
+| `COMPARISON` | 세금 제도 비교 | 멀티 쿼리 | claude-opus-4-7 |
+| `GENERAL` | 일반 질문 | 검색 없음 | claude-haiku-4-5-20251001 |
 
 - 유사도 임계값: **0.7** 이상이면 인텐트 매칭, 미만이면 `GENERAL`
 
@@ -208,6 +210,10 @@ curl http://localhost:8000/api/v1/chat/history/{session_id}
 ```bash
 python -m app.scripts.index_documents
 ```
+
+> ⚠️ 임베딩 모델을 OpenAI(1536차원)에서 로컬 `BAAI/bge-m3`(1024차원)로 교체했으므로,
+> 기존 ChromaDB 벡터는 무효입니다. 최초 1회 `CHROMA_PERSIST_DIRECTORY`(기본 `./data/chroma`)와
+> docker 볼륨 `ai-chroma-data`를 비운 뒤 위 인덱싱을 다시 실행하세요.
 
 ## 6. 시맨틱 캐시
 
@@ -247,7 +253,7 @@ ai/
 │   │   ├── retrieval_service.py  # 하이브리드 검색 (BM25 + 벡터 + RRF)
 │   │   ├── cache_service.py      # 시맨틱 캐시 (임베딩 유사도)
 │   │   ├── backend_client.py     # 뱅크앱 API 클라이언트 (거래/사업자)
-│   │   ├── embedding_service.py  # text-embedding-3-small
+│   │   ├── embedding_service.py  # 로컬 HuggingFace 임베딩 (BAAI/bge-m3)
 │   │   ├── vectorstore.py        # ChromaDB 벡터 저장소
 │   │   ├── mapping_service.py    # MCC 코드 → 카테고리/경비율 매핑
 │   │   └── document_processor.py # 문서 처리 및 인덱싱

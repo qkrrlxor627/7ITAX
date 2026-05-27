@@ -40,12 +40,6 @@ app:
     enabled: false
 
 ssafy:
-  finance:
-    base-url: https://finopenapi.ssafy.io/ssafy/api/v1/edu
-    api-key: ${SSAFY_FINANCE_API_KEY}
-    institution-code: "00100"
-    fintech-app-no: "001"
-    user-key: ${SSAFY_FINANCE_USER_KEY:}
   oauth:
     authorization-uri: https://project.ssafy.com/oauth/sso-check
     token-uri: https://project.ssafy.com/ssafy/oauth2/token

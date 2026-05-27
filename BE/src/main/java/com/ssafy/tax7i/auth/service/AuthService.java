@@ -8,7 +8,6 @@ import com.ssafy.tax7i.auth.dto.LoginResponse;
 import com.ssafy.tax7i.auth.repository.UserRepository;
 import com.ssafy.tax7i.auth.service.NiceIdentityMockService.VerificationResult;
 import com.ssafy.tax7i.banking.client.SsafyFinanceClient;
-import com.ssafy.tax7i.config.SsafyFinanceProperties;
 import com.ssafy.tax7i.global.exception.BusinessException;
 import com.ssafy.tax7i.global.exception.ErrorCode;
 import com.ssafy.tax7i.global.jwt.JwtTokenProvider;
@@ -42,7 +41,6 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, String> redisTemplate;
     private final SsafyFinanceClient ssafyFinanceClient;
-    private final SsafyFinanceProperties ssafyFinanceProperties;
 
     @Transactional
     public IdentityVerifyResponse verifyIdentity(IdentityVerifyRequest request) {

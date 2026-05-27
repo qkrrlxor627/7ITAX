@@ -54,7 +54,8 @@ public class BookEntryEventListener {
                             event.amount(),
                             null, // isBusinessPurpose — 사업용 결제이므로 나중에 확인
                             null, // isClientAccompanied — 나중에 사용자 확인
-                            event.userId()
+                            event.userId(),
+                            null  // note — 증빙 메모 없음
                     )
             );
 

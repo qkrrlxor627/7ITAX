@@ -10,9 +10,7 @@ from app.services.backend_client import BackendClient, BusinessInfo
 
 def _make_settings() -> Settings:
     return Settings(
-        gms_api_key="test-key",
-        gms_base_url="http://fake-llm",
-        llm_model="test-model",
+        anthropic_api_key="test-key",
     )
 
 

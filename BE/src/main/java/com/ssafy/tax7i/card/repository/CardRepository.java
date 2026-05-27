@@ -13,4 +13,8 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     List<Card> findByUser_IdAndDeletedFalse(Long userId);
 
     Optional<Card> findByUser_IdAndIsDefaultTrueAndDeletedFalse(Long userId);
+
+    Optional<Card> findByCardNoKey(String cardNoKey);
+
+    List<Card> findByUser_SsafyUserKeyAndDeletedFalse(String ssafyUserKey);
 }

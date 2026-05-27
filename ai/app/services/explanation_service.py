@@ -2,8 +2,8 @@ import json
 import logging
 import re
 
+from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 
 from app.core.prompts import CLASSIFY_EXPLANATION_PROMPT
 from app.services.retrieval_service import RetrievalService, SearchResult
@@ -17,7 +17,7 @@ class ExplanationService:
     def __init__(
         self,
         retrieval_service: RetrievalService,
-        llm: ChatOpenAI,
+        llm: ChatAnthropic,
         category_mappings: list[dict],
     ) -> None:
         self.retrieval_service = retrieval_service
