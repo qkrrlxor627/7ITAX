@@ -36,8 +36,8 @@
 | WebView | React (TypeScript) | 2차 범위 — 콘텐츠/데이터 표시 화면 SPA |
 | WebView 서빙 | Nginx | 2차 범위 — Static files + Reverse Proxy |
 | 컨테이너 | Docker (Docker Compose) | EC2 위 전체 서비스 컨테이너화 |
-| CI/CD | Jenkins | GitLab Webhook → Jenkins 자동 빌드/배포 |
-| 소스 관리 | GitLab | 코드 저장소, Webhook 트리거 |
+| CI/CD | Jenkins | GitHub Webhook → Jenkins 자동 빌드/배포 |
+| 소스 관리 | GitHub | 코드 저장소, Webhook 트리거 |
 | Target SDK | Android 16 (API 36) | minSdk 28 (Galaxy S10 기준) |
 
 ### 1.3 프론트엔드 범위
@@ -75,7 +75,7 @@ Kotlin Native Shell + WebView(React SPA) 하이브리드 구조를 채택합니�
 │  │       │                   └──────────────────────────┘      │ │
 │  │       │                                                      │ │
 │  │  ┌────┴─────┐   Webhook   ┌──────────┐  git push  ┌───────┐ │ │
-│  │  │ Jenkins  │ ◄─────────  │  GitLab  │ ◄────────  │ Dev   │ │ │
+│  │  │ Jenkins  │ ◄─────────  │  GitHub  │ ◄────────  │ Dev   │ │ │
 │  │  │ (CI/CD)  │             │          │            │       │ │ │
 │  │  └──────────┘             └──────────┘            └───────┘ │ │
 │  └──────────────────────────────────────────────────────────────┘ │
@@ -788,16 +788,16 @@ webView.loadUrl(Constants.WEBVIEW_BASE_URL)
 // 개발: "http://10.0.2.2:3000"
 ```
 
-**배포 흐름 (GitLab → Jenkins CI/CD):**
+**배포 흐름 (GitHub → Jenkins CI/CD):**
 
 ```
-Developer → git push → GitLab → Webhook → Jenkins → Docker Build → EC2 배포
+Developer → git push → GitHub → Webhook → Jenkins → Docker Build → EC2 배포
 ```
 
 ```bash
 # Jenkins Pipeline 주요 단계
 
-# 1. GitLab에서 Webhook 트리거 → Jenkins 자동 시작
+# 1. GitHub에서 Webhook 트리거 → Jenkins 자동 시작
 
 # 2. React SPA 빌드
 cd webview/
