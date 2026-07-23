@@ -53,6 +53,12 @@ async def init_services() -> None:
 
     settings = get_settings()
 
+    if not settings.anthropic_api_key:
+        logger.warning(
+            "ANTHROPIC_API_KEY가 비어 있습니다. 앱은 기동되지만 챗봇·설명 LLM 호출은 "
+            "인증 오류로 실패합니다. .env 또는 환경변수로 키를 설정하세요."
+        )
+
     try:
         _vectorstore_service = VectorStoreService(settings)
     except Exception as e:
@@ -61,11 +67,27 @@ async def init_services() -> None:
 
     bm25_index = BM25Index()
     all_docs = _vectorstore_service.get_all_documents()
+    if not all_docs:
+        # ChromaDB가 비어 있으면 세법 PDF를 자동 인덱싱한다(최초 1회, 수 분 소요 가능).
+        # 볼륨이 지속되므로 다음 기동부터는 이 경로를 건너뛴다. 실패해도 앱은 계속 뜬다(RAG만 빈 컨텍스트).
+        logger.info("ChromaDB 비어있음 → 세법 문서 자동 인덱싱을 시작합니다(최초 1회, 수 분 소요 가능).")
+        try:
+            from app.scripts.index_documents import run_indexing
+
+            indexed = run_indexing(_vectorstore_service)
+            if indexed:
+                all_docs = _vectorstore_service.get_all_documents()
+                logger.info("자동 인덱싱 완료: %d개 청크", indexed)
+            else:
+                logger.warning("자동 인덱싱: 처리된 문서 없음 (resources PDF 존재 여부 확인 필요)")
+        except Exception as e:
+            logger.warning("자동 인덱싱 실패 → RAG 빈 컨텍스트로 계속: %s", e, exc_info=True)
+
     if all_docs:
         bm25_index.build(all_docs)
         logger.info("BM25 인덱스 구축 완료: %d개 문서", len(all_docs))
     else:
-        logger.warning("BM25 인덱스: 문서 없음 (ChromaDB 비어있음)")
+        logger.warning("BM25 인덱스: 문서 없음 (RAG 컨텍스트 없이 동작)")
 
     reranker = None
     try:
@@ -111,13 +133,13 @@ async def init_services() -> None:
     )
 
 
-    # 세목 분류 서비스 초기화 (모델 미존재 시 경고만 출력)
+    # 세목 분류 서비스 초기화 (모델 미존재 시 내부적으로 규칙기반 폴백 모드로 초기화됨 → 예외 없음)
     global _tax_classifier_service
     try:
         _tax_classifier_service = TaxClassifierService()
         logger.info("TaxClassifierService 초기화 완료")
-    except FileNotFoundError as e:
-        logger.warning("TaxClassifierService 모델 없음 (파인튜닝 필요): %s", e)
+    except Exception as e:
+        logger.warning("TaxClassifierService 초기화 실패: %s", e)
 
     # 세목 분류 설명 서비스 초기화 (실패 시 경고만 출력, 앱 중단 없음)
     global _explanation_service

@@ -13,24 +13,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.ssafy.seveniTax.ui.components.CodeBoxes
 import com.ssafy.seveniTax.ui.components.PinKeypad
 import com.ssafy.seveniTax.ui.theme.*
+import com.ssafy.seveniTax.viewmodel.PayViewModel
 
 @Composable
 fun PayVerifyScreen(
     onBack: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    viewModel: PayViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     var pin by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(pin.length) {
-        if (pin.length == 6) {
-            // TODO: 서버 비밀번호 검증 연동
-            // 현재는 Mock으로 바로 통과
-            onNext()
+    // 6자리 입력 완료 → 결제 비밀번호 저장 + Pay 계좌 개설
+    LaunchedEffect(pin) {
+        if (pin.length == 6 && !uiState.loading && !uiState.payComplete) {
+            viewModel.completePaySignup(pin)
         }
+    }
+
+    // 가입 완료 → 완료 화면으로 이동
+    LaunchedEffect(uiState.payComplete) {
+        if (uiState.payComplete) onNext()
+    }
+
+    // 실패 → 안내 후 재입력을 위해 PIN 초기화
+    LaunchedEffect(uiState.error) {
+        if (uiState.error != null) pin = ""
     }
 
     Column(
@@ -85,10 +97,19 @@ fun PayVerifyScreen(
                 masked = true
             )
 
-            if (errorMessage.isNotEmpty()) {
+            if (uiState.loading) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = errorMessage,
+                    text = "가입을 완료하고 있어요...",
+                    fontSize = 13.sp,
+                    color = TextSecondary
+                )
+            }
+
+            uiState.error?.let { message ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = message,
                     fontSize = 13.sp,
                     color = Error
                 )
@@ -100,10 +121,11 @@ fun PayVerifyScreen(
         // ── 키패드 ──
         PinKeypad(
             onNumberClick = { digit ->
-                if (pin.length < 6) pin += digit
+                if (uiState.error != null) viewModel.clearError()
+                if (!uiState.loading && pin.length < 6) pin += digit
             },
             onDelete = {
-                if (pin.isNotEmpty()) pin = pin.dropLast(1)
+                if (!uiState.loading && pin.isNotEmpty()) pin = pin.dropLast(1)
             },
             modifier = Modifier
                 .fillMaxWidth()

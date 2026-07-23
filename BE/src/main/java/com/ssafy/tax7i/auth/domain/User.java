@@ -47,6 +47,9 @@ public class User extends BaseTimeEntity {
     @Column(length = 200)
     private String pinHash;
 
+    @Column(length = 200)
+    private String payPinHash;
+
     @Column(nullable = false)
     private Boolean biometricEnabled = false;
 
@@ -83,6 +86,14 @@ public class User extends BaseTimeEntity {
 
     public void setupPin(String pinHash) {
         this.pinHash = pinHash;
+    }
+
+    public void setupPayPin(String payPinHash) {
+        this.payPinHash = payPinHash;
+    }
+
+    public boolean hasPayPin() {
+        return this.payPinHash != null;
     }
 
     public void updateLastLogin() {

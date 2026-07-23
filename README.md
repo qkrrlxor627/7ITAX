@@ -63,14 +63,23 @@ S14P21C203/
 
 ```bash
 # 인프라 기동 (PostgreSQL, Redis, AI, Worker)
+# AES_ENCRYPTION_KEY: Base64 인코딩된 32바이트, JWT_SECRET: 32바이트 이상 문자열
 ANTHROPIC_API_KEY=<키> AES_ENCRYPTION_KEY=<키> JWT_SECRET=<키> docker compose up -d
 
 # Backend
-cd BE && ./gradlew bootRun
+# 위 인라인 env는 docker compose 프로세스에만 적용되므로, bootRun에는 별도로 전달해야 한다.
+# Redis는 compose가 비밀번호(ssafy)를 요구하므로 REDIS_PASSWORD도 함께 넘긴다.
+# DB 접속 정보(tax7i/ssafy/ssafy)는 application.yaml 기본값이 compose와 일치해 생략 가능하다.
+cd BE
+AES_ENCRYPTION_KEY=<키> JWT_SECRET=<키> REDIS_PASSWORD=ssafy ./gradlew bootRun
 
 # Android
 Android Studio에서 FE/ 프로젝트 열기 → Run
 ```
+
+> 데모용 예시 키(실서비스에서는 반드시 교체):
+> `AES_ENCRYPTION_KEY=dGVzdC1hZXMtZW5jcnlwdGlvbi1rZXktMzItYnl0ZXM=`,
+> `JWT_SECRET=demo-jwt-secret-key-must-be-at-least-32-bytes!!`
 
 > 금융 기능은 자체 구현 로컬 뱅킹으로 동작하므로 SSAFY 금융망 키가 필요 없습니다.
 > 계좌/잔액/이체/카드결제는 DB 원장 위에서 처리되며, 신규 계좌는 데모용 시드 잔액을 갖습니다.

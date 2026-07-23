@@ -89,7 +89,8 @@ public enum ErrorCode {
 
     // 503 Service Unavailable
     BANK_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "은행 연동 서비스가 일시적으로 불가합니다."),
-    AI_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI 서비스가 일시적으로 불가합니다.");
+    AI_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI 서비스가 일시적으로 불가합니다."),
+    SMS_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "SMS 서비스가 설정되지 않았습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

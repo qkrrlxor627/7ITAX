@@ -105,10 +105,17 @@ class ChatService:
         if intent_result.be_data_required and self.backend_client and user_id:
             from app.utils.text_utils import format_business_info, format_transactions
 
-            transactions = await self.backend_client.get_transactions(user_id)
-            business_info = await self.backend_client.get_business_info(user_id)
-            user_transactions_text = format_transactions(transactions)
-            user_data_text = format_business_info(business_info)
+            try:
+                transactions = await self.backend_client.get_transactions(user_id)
+                business_info = await self.backend_client.get_business_info(user_id)
+                user_transactions_text = format_transactions(transactions)
+                user_data_text = format_business_info(business_info)
+            except Exception as e:
+                # 백엔드 데이터 보강 실패는 치명적이지 않다: 개인화만 생략하고 일반 답변을 이어간다.
+                # (예: BE에 해당 사용자 데이터 엔드포인트가 없거나 네트워크/인증 오류)
+                logger.warning(
+                    "백엔드 사용자 데이터 조회 실패 → 개인화 생략하고 답변 계속: %s", e
+                )
 
         # 5. 인텐트별 프롬프트 생성
         system_prompt = build_intent_prompt(

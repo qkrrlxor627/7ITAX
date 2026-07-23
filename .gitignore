@@ -942,8 +942,10 @@ $RECYCLE.BIN/
 docdoc/
 CLAUDE.md
 
-# ML 모델 아티팩트
-ai/models/
+# ML 모델 아티팩트 (대용량 모델 파일은 무시하되, 디렉토리 자체는 .gitkeep으로 추적
+# → Dockerfile의 `COPY models/ models/`가 클론 직후에도 성공하도록)
+ai/models/*
+!ai/models/.gitkeep
 
 # ChromaDB 벡터 저장소 데이터
 ai/app/data/chroma/

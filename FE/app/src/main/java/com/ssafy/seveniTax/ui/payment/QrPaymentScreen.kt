@@ -67,10 +67,13 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
+import com.ssafy.seveniTax.ui.components.CodeBoxes
+import com.ssafy.seveniTax.ui.components.PinKeypad
 import com.ssafy.seveniTax.ui.navigation.Route
 import com.ssafy.seveniTax.ui.theme.*
 import com.ssafy.seveniTax.viewmodel.CardViewModel
 import com.ssafy.seveniTax.viewmodel.PaymentViewModel
+import com.ssafy.seveniTax.viewmodel.PayViewModel
 import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
@@ -79,12 +82,14 @@ fun QrPaymentScreen(
     navController: NavController,
     cardViewModel: CardViewModel = hiltViewModel(),
     paymentViewModel: PaymentViewModel,
+    payViewModel: PayViewModel = hiltViewModel(),
     showBackButton: Boolean = true,
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val cardUiState by cardViewModel.uiState.collectAsState()
     val paymentState by paymentViewModel.uiState.collectAsState()
+    val payState by payViewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     var selectedCard by remember { mutableIntStateOf(0) }
     var scannedResult by remember { mutableStateOf<String?>(null) }
@@ -94,6 +99,8 @@ fun QrPaymentScreen(
     var dialogTitle by remember { mutableStateOf("") }
     var dialogMessage by remember { mutableStateOf("") }
     var dialogIsSuccess by remember { mutableStateOf(false) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    var pinInput by remember { mutableStateOf("") }
 
     // 가맹점 목록 로드
     LaunchedEffect(Unit) {
@@ -125,8 +132,24 @@ fun QrPaymentScreen(
         }
     }
 
+    // 결제 비밀번호 6자리 입력 완료 → 검증 후 결제 승인
+    LaunchedEffect(pinInput) {
+        if (showPinDialog && pinInput.length == 6 && !payState.loading) {
+            payViewModel.verifyPayPin(pinInput) {
+                showPinDialog = false
+                pinInput = ""
+                paymentViewModel.confirmQrPayment(scannedToken)
+            }
+        }
+    }
+
+    // 비밀번호 검증 실패 → 재입력 위해 초기화 (에러 메시지는 다이얼로그에 표시)
+    LaunchedEffect(payState.error) {
+        if (showPinDialog && payState.error != null) pinInput = ""
+    }
+
     // QR 스캔 결과 팝업
-    if (scannedResult != null && !showPayConfirmDialog && !showResultDialog) {
+    if (scannedResult != null && !showPayConfirmDialog && !showResultDialog && !showPinDialog) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = {
                 scannedResult = null
@@ -197,15 +220,72 @@ fun QrPaymentScreen(
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showPayConfirmDialog = false
-                    paymentViewModel.confirmQrPayment(scannedToken)
+                    pinInput = ""
+                    payViewModel.clearError()
+                    showPinDialog = true
                 }) {
-                    Text("결제하기", color = BrandPurple, fontWeight = FontWeight.Bold)
+                    Text("다음", color = BrandPurple, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showPayConfirmDialog = false
                     scannedResult = null
+                }) {
+                    Text("취소", color = TextSecondary)
+                }
+            }
+        )
+    }
+
+    // 결제 비밀번호 입력 다이얼로그
+    if (showPinDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                showPinDialog = false
+                pinInput = ""
+                scannedResult = null
+                payViewModel.clearError()
+                paymentViewModel.resetPayment()
+            },
+            title = { Text("결제 비밀번호", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "간편 결제 비밀번호 6자리를 입력하세요",
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CodeBoxes(code = pinInput, length = 6, masked = true)
+                    if (payState.loading) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("확인 중...", fontSize = 12.sp, color = TextSecondary)
+                    }
+                    payState.error?.let { msg ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(msg, fontSize = 12.sp, color = Color(0xFFE8475A))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    PinKeypad(
+                        onNumberClick = { digit ->
+                            if (payState.error != null) payViewModel.clearError()
+                            if (!payState.loading && pinInput.length < 6) pinInput += digit.toString()
+                        },
+                        onDelete = {
+                            if (!payState.loading && pinInput.isNotEmpty()) pinInput = pinInput.dropLast(1)
+                        }
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showPinDialog = false
+                    pinInput = ""
+                    scannedResult = null
+                    payViewModel.clearError()
+                    paymentViewModel.resetPayment()
                 }) {
                     Text("취소", color = TextSecondary)
                 }

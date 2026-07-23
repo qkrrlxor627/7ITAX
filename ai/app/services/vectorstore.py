@@ -1,10 +1,10 @@
 import logging
 
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
 
 from app.core.config import Settings
 from app.core.exceptions import VectorStoreError
+from app.services.embeddings import get_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +16,7 @@ class VectorStoreService:
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=settings.embedding_model,
-            model_kwargs={"device": settings.embedding_device},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        self.embeddings = get_embeddings(settings.embedding_model, settings.embedding_device)
         self.vectorstore = Chroma(
             collection_name=self.COLLECTION_NAME,
             embedding_function=self.embeddings,

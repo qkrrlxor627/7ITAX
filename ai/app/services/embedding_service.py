@@ -1,10 +1,10 @@
 import logging
 
 import numpy as np
-from langchain_huggingface import HuggingFaceEmbeddings
 
 from app.core.config import Settings
 from app.core.exceptions import EmbeddingError
+from app.services.embeddings import get_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +17,7 @@ class EmbeddingService:
     """
 
     def __init__(self, settings: Settings) -> None:
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=settings.embedding_model,
-            model_kwargs={"device": settings.embedding_device},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        self.embeddings = get_embeddings(settings.embedding_model, settings.embedding_device)
 
     async def embed_text(self, text: str) -> list[float]:
         """단일 텍스트의 임베딩 벡터를 생성한다.

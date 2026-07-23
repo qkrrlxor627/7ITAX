@@ -40,7 +40,7 @@ services:
       - "8000:8000"
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      CLAUDE_MODEL_OPUS: ${CLAUDE_MODEL_OPUS:-claude-opus-4-7}
+      CLAUDE_MODEL_OPUS: ${CLAUDE_MODEL_OPUS:-claude-opus-4-8}
       CLAUDE_MODEL_HAIKU: ${CLAUDE_MODEL_HAIKU:-claude-haiku-4-5-20251001}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
       EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
@@ -52,7 +52,9 @@ services:
       interval: 15s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      # 최초 기동 시 ChromaDB 자동 인덱싱(세법 PDF 임베딩)이 수 분 걸릴 수 있어 넉넉히 설정.
+      # lifespan 완료 전에는 포트가 열리지 않아 health가 실패하므로 이 구간을 무시한다.
+      start_period: 600s
     volumes:
       - ai-chroma-data:/app/data/chroma
 
@@ -70,9 +72,13 @@ services:
       DB_PASSWORD: ssafy
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ssafy}
       AI_SERVICE_BASE_URL: http://ai:8000
+      # AES_ENCRYPTION_KEY(Base64 32바이트)·JWT_SECRET(32바이트 이상)은 시크릿이라 기본값 없이 필수.
+      # `docker compose up` 실행 시 환경변수로 전달해야 하며 백엔드(bootRun)와 동일 값을 쓴다.
+      # (과거 JWT_SECRET 기본값 'default-secret'은 14바이트 → jjwt HS256 최소 길이 미달로 worker 크래시 루프였음)
       AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY}
-      JWT_SECRET: ${JWT_SECRET:-default-secret}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

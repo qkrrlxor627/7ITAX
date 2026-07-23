@@ -11,6 +11,8 @@ from pathlib import Path
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+from app.services.rule_based_classifier import classify_by_rules
+
 logger = logging.getLogger(__name__)
 
 MODEL_DIR = Path(__file__).parent.parent.parent / "models" / "tax_classifier"
@@ -57,22 +59,32 @@ class TaxClassifierService:
         if hasattr(self, "_initialized") and self._initialized:
             return
 
-        if not MODEL_DIR.exists():
-            raise FileNotFoundError(
-                f"세목 분류 모델이 존재하지 않습니다: {MODEL_DIR}. "
-                "먼저 python -m scripts.train_tax_classifier 를 실행하세요."
+        # 모델이 없거나 로드에 실패하면 예외를 던지지 않고 규칙기반 폴백 모드로 초기화한다.
+        # (classify()가 self._model is None일 때 classify_by_rules로 위임)
+        self._model = None
+        self._tokenizer = None
+        self._device = None
+
+        if MODEL_DIR.exists():
+            try:
+                self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                logger.info("세목 분류 모델 로드 시작 (device=%s)", self._device)
+                self._tokenizer = AutoTokenizer.from_pretrained(str(MODEL_DIR))
+                self._model = AutoModelForSequenceClassification.from_pretrained(str(MODEL_DIR))
+                self._model.to(self._device)
+                self._model.eval()
+                logger.info("세목 분류 모델 로드 완료: %d개 레이블", len(TAX_CATEGORIES))
+            except Exception as e:
+                logger.warning("세목 분류 모델 로드 실패 → 규칙기반 폴백 사용: %s", e, exc_info=True)
+                self._model = None
+        else:
+            logger.warning(
+                "세목 분류 모델 없음(%s) → 규칙기반 폴백 사용. "
+                "정확한 분류가 필요하면 `python -m scripts.train_tax_classifier`로 학습하세요.",
+                MODEL_DIR,
             )
 
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info("세목 분류 모델 로드 시작 (device=%s)", self._device)
-
-        self._tokenizer = AutoTokenizer.from_pretrained(str(MODEL_DIR))
-        self._model = AutoModelForSequenceClassification.from_pretrained(str(MODEL_DIR))
-        self._model.to(self._device)
-        self._model.eval()
-
         self._initialized = True
-        logger.info("세목 분류 모델 로드 완료: %d개 레이블", len(TAX_CATEGORIES))
 
     def classify(self, user_input: str) -> dict:
         """거래 내역 텍스트를 세목으로 분류한다.
@@ -84,7 +96,7 @@ class TaxClassifierService:
             dict with keys:
                 - category (str): 분류된 세목명
                 - confidence (float): 예측 확률 (0~1)
-                - method (str): "local_model" | "fallback_needed"
+                - method (str): "local_model" | "rule_based" | "fallback_needed"
                 - needs_fallback (bool): LLM fallback 필요 여부
         """
         if not user_input or not user_input.strip():
@@ -94,6 +106,10 @@ class TaxClassifierService:
                 "method": "fallback_needed",
                 "needs_fallback": True,
             }
+
+        # 파인튜닝 모델이 없으면 규칙기반 폴백으로 분류한다.
+        if self._model is None:
+            return classify_by_rules(user_input)
 
         encodings = self._tokenizer(
             user_input,

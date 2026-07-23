@@ -28,14 +28,20 @@ public class SolapiSmsSender implements SmsSender {
 
     @PostConstruct
     void init() {
-        this.messageService = SolapiClient.INSTANCE.createInstance(
-                solapiProperties.apiKey(),
-                solapiProperties.apiSecret()
-        );
+        String apiKey = solapiProperties.apiKey();
+        String apiSecret = solapiProperties.apiSecret();
+        if (apiKey == null || apiKey.isBlank() || apiSecret == null || apiSecret.isBlank()) {
+            log.warn("SOLAPI 자격증명 미설정 — SMS 발송이 비활성화됩니다. OTP 발송 기능은 동작하지 않습니다.");
+            return;
+        }
+        this.messageService = SolapiClient.INSTANCE.createInstance(apiKey, apiSecret);
     }
 
     @Override
     public void send(String phoneNumber, String otpCode) {
+        if (messageService == null) {
+            throw new BusinessException(ErrorCode.SMS_SERVICE_UNAVAILABLE);
+        }
         validatePayload(phoneNumber, otpCode);
 
         Message message = new Message();
