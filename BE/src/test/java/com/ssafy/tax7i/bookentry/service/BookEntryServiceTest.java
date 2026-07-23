@@ -69,7 +69,7 @@ class BookEntryServiceTest {
 
         assertThat(response.vatAmount()).isEqualTo(5000L);        // 55000 / 11 = 5000
         assertThat(response.supplyPrice()).isEqualTo(50000L);     // 55000 - 5000 = 50000
-        assertThat(response.expenseAmount()).isEqualTo(50000L);
+        assertThat(response.expenseAmount()).isEqualTo(55000L);   // 비용=원 결제금액(공급가+부가세), V3 마이그레이션 기준
         assertThat(response.isBusinessExpense()).isTrue();
         assertThat(response.confirmed()).isFalse();
     }
@@ -107,7 +107,7 @@ class BookEntryServiceTest {
 
         BookEntryResponse response = bookEntryService.create(1L, request);
 
-        assertThat(response.incomeAmount()).isEqualTo(1000000L);  // 1100000 - 100000
+        assertThat(response.incomeAmount()).isEqualTo(1100000L);  // 수입=원 결제금액(공급가 1,000,000 + 부가세 100,000)
         assertThat(response.expenseAmount()).isEqualTo(0L);
         assertThat(response.entryType()).isEqualTo(EntryType.INCOME);
     }
@@ -126,7 +126,7 @@ class BookEntryServiceTest {
 
         BookEntryResponse response = bookEntryService.create(1L, request);
 
-        assertThat(response.fixedAssetAmount()).isEqualTo(3000000L);
+        assertThat(response.fixedAssetAmount()).isEqualTo(3300000L); // 고정자산=원 취득금액(공급가 3,000,000 + 부가세 300,000)
         assertThat(response.vatAmount()).isEqualTo(300000L);
         assertThat(response.expenseAmount()).isEqualTo(0L);
     }
