@@ -31,6 +31,21 @@ class PayRepositoryImpl @Inject constructor(
         return response.body() ?: throw Exception(extractErrorMessage(response, "잔액 조회에 실패했습니다."))
     }
 
+    override suspend fun setPayPin(pin: String): ApiResponse<Unit> {
+        val response = payApi.setPayPin(PayPinRequest(pin))
+        return response.body() ?: throw Exception(extractErrorMessage(response, "결제 비밀번호 설정에 실패했습니다."))
+    }
+
+    override suspend fun verifyPayPin(pin: String): ApiResponse<Unit> {
+        val response = payApi.verifyPayPin(PayPinRequest(pin))
+        return response.body() ?: throw Exception(extractErrorMessage(response, "결제 비밀번호 확인에 실패했습니다."))
+    }
+
+    override suspend fun getPayPinStatus(): ApiResponse<PayPinStatusResponse> {
+        val response = payApi.getPayPinStatus()
+        return response.body() ?: throw Exception(extractErrorMessage(response, "결제 비밀번호 상태 조회에 실패했습니다."))
+    }
+
     private fun <T> extractErrorMessage(response: Response<T>, fallback: String): String {
         return try {
             val errorBody = response.errorBody()?.string()

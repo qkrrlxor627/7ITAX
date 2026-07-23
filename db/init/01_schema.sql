@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone_last4     VARCHAR(4),
     phone_number    VARCHAR(512),
     pin_hash        VARCHAR(200),
+    pay_pin_hash    VARCHAR(200),
     ssafy_user_key  VARCHAR(100),
     status          VARCHAR(255) NOT NULL
                         CHECK (status IN ('ACTIVE', 'SUSPENDED', 'WITHDRAWN'))

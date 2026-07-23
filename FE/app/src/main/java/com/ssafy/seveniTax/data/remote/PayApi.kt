@@ -20,4 +20,13 @@ interface PayApi {
 
     @GET("banking/accounts/{id}/balance")
     suspend fun getBalance(@Path("id") id: String): Response<ApiResponse<BalanceResponse>>
+
+    @POST("pay/pin")
+    suspend fun setPayPin(@Body body: PayPinRequest): Response<ApiResponse<Unit>>
+
+    @POST("pay/pin/verify")
+    suspend fun verifyPayPin(@Body body: PayPinRequest): Response<ApiResponse<Unit>>
+
+    @GET("pay/pin/status")
+    suspend fun getPayPinStatus(): Response<ApiResponse<PayPinStatusResponse>>
 }

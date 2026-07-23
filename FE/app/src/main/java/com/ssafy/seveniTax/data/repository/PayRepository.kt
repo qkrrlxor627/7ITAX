@@ -8,4 +8,7 @@ interface PayRepository {
     suspend fun getAccounts(type: String? = null): ApiResponse<List<AccountResponse>>
     suspend fun getAccount(id: String): ApiResponse<AccountResponse>
     suspend fun getBalance(accountId: String): ApiResponse<BalanceResponse>
+    suspend fun setPayPin(pin: String): ApiResponse<Unit>
+    suspend fun verifyPayPin(pin: String): ApiResponse<Unit>
+    suspend fun getPayPinStatus(): ApiResponse<PayPinStatusResponse>
 }
