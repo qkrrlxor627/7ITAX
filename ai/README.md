@@ -31,7 +31,7 @@ cp .env.example .env
 ANTHROPIC_API_KEY=실제_API_키
 
 # 모델 티어링 (standard=메인 챗봇=Opus, mini=가벼운 작업=Haiku)
-CLAUDE_MODEL_OPUS=claude-opus-4-7
+CLAUDE_MODEL_OPUS=claude-opus-4-8
 CLAUDE_MODEL_HAIKU=claude-haiku-4-5-20251001
 
 # RAG (비활성화 시 LLM만 사용)
@@ -105,7 +105,7 @@ POST /api/v1/chat/
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `answer` | string | AI 응답 텍스트 |
-| `model` | string | 사용된 모델명 (`claude-haiku-4-5-20251001` 또는 `claude-opus-4-7`) |
+| `model` | string | 사용된 모델명 (`claude-haiku-4-5-20251001` 또는 `claude-opus-4-8`) |
 | `session_id` | string | 세션 ID (이후 대화에 재사용) |
 | `usage` | dict \| null | 토큰 사용량 |
 
@@ -180,12 +180,12 @@ curl http://localhost:8000/api/v1/chat/history/{session_id}
 | 인텐트 | 설명 | 검색 전략 | LLM 모델 |
 |--------|------|---------|---------|
 | `TAX_RATE_LOOKUP` | 세율 조회 | 메타데이터 필터 | claude-haiku-4-5-20251001 |
-| `EXPENSE_CLASSIFICATION` | 경비 분류 | 하이브리드 + 백엔드 데이터 | claude-opus-4-7 |
-| `DEDUCTION_ELIGIBILITY` | 공제/감면 적격 | 하이브리드 | claude-opus-4-7 |
+| `EXPENSE_CLASSIFICATION` | 경비 분류 | 하이브리드 + 백엔드 데이터 | claude-opus-4-8 |
+| `DEDUCTION_ELIGIBILITY` | 공제/감면 적격 | 하이브리드 | claude-opus-4-8 |
 | `PROCEDURE_GUIDE` | 신고 절차 안내 | 하이브리드 | claude-haiku-4-5-20251001 |
 | `CONCEPT_EXPLANATION` | 세무 개념 설명 | 벡터 | claude-haiku-4-5-20251001 |
-| `CALCULATION` | 세금 계산 | 하이브리드 + 백엔드 데이터 | claude-opus-4-7 |
-| `COMPARISON` | 세금 제도 비교 | 멀티 쿼리 | claude-opus-4-7 |
+| `CALCULATION` | 세금 계산 | 하이브리드 + 백엔드 데이터 | claude-opus-4-8 |
+| `COMPARISON` | 세금 제도 비교 | 멀티 쿼리 | claude-opus-4-8 |
 | `GENERAL` | 일반 질문 | 검색 없음 | claude-haiku-4-5-20251001 |
 
 - 유사도 임계값: **0.7** 이상이면 인텐트 매칭, 미만이면 `GENERAL`

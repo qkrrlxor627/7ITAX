@@ -11,10 +11,12 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Anthropic Claude
-    anthropic_api_key: str
+    # 기본값을 빈 문자열로 두어 import 시점 크래시를 막는다(키 없이도 앱 기동 가능).
+    # 실제 LLM 호출 전에 .env 또는 환경변수로 키를 반드시 설정해야 한다.
+    anthropic_api_key: str = ""
 
     # 모델 티어링 (standard=메인 챗봇, mini=쿼리 재작성·분류 설명)
-    claude_model_opus: str = "claude-opus-4-7"
+    claude_model_opus: str = "claude-opus-4-8"
     claude_model_haiku: str = "claude-haiku-4-5-20251001"
 
     # 캐시 설정
