@@ -1,0 +1,35 @@
+route:
+  # 같은 alertname/severity 끼리 묶어서 폭탄 방지
+  group_by: ['alertname', 'severity']
+  group_wait: 10s        # 첫 알림 전 대기 (같은 그룹 추가 알림 모으기)
+  group_interval: 30s    # 그룹에 새 알림 추가 시 재전송 간격
+  repeat_interval: 1h    # 동일 알림 반복 전송 간격 (미응답 방지)
+  receiver: 'webhook-local'
+
+  # 심각도별 라우팅 (운영 시 critical은 전화/PagerDuty 등으로 분기)
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: 'webhook-local'
+      group_wait: 0s     # 치명적 알림은 즉시
+    - matchers:
+        - severity = "warning"
+      receiver: 'webhook-local'
+
+receivers:
+  # 로컬 테스트 수신기 — 들어온 알림 JSON을 stdout에 로깅
+  # 운영 시 url을 실제 Slack/Discord 웹훅으로 교체
+  - name: 'webhook-local'
+    webhook_configs:
+      - url: 'http://webhook-logger:8080/'
+        send_resolved: true
+
+# 억제 규칙 — 백엔드가 통째로 DOWN이면 그로 인해 파생되는
+# 에러율/지연 경고는 숨겨서 '진짜 원인'만 보이게 함
+inhibit_rules:
+  - source_matchers:
+      - alertname = "BackendDown"
+    target_matchers:
+      - severity =~ "warning|critical"
+    # 같은 application 라벨을 공유하는 알림만 억제
+    equal: ['application']

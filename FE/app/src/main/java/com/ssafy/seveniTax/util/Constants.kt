@@ -4,12 +4,12 @@ import com.ssafy.seveniTax.BuildConfig
 
 object Constants {
     val API_BASE_URL = if (BuildConfig.DEBUG)
-        "https://j14c203.p.ssafy.io/api/"
+        "http://10.0.2.2:8080/api/"
     else
         "https://j14c203.p.ssafy.io/api/"
 
     val WEBVIEW_BASE_URL = if (BuildConfig.DEBUG)
-        "https://j14c203.p.ssafy.io"
+        "http://10.0.2.2:3000"
     else
         "https://j14c203.p.ssafy.io"
 

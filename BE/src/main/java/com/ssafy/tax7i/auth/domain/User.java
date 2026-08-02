@@ -96,6 +96,10 @@ public class User extends BaseTimeEntity {
         return this.payPinHash != null;
     }
 
+    public void registerDevice(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
     public void updateLastLogin() {
         this.lastLoginAt = LocalDateTime.now();
     }

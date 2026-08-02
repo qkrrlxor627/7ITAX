@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
@@ -74,7 +75,7 @@ class AuthControllerTest {
 
     @Test
     void setupPin_200_JWT발급() throws Exception {
-        given(authService.setupPin(any(), any()))
+        given(authService.setupPin(any(), any(), any(), any()))
                 .willReturn(new LoginResponse("access-token", "refresh-token"));
 
         mockMvc.perform(post("/api/auth/setup-pin")
@@ -100,7 +101,7 @@ class AuthControllerTest {
 
     @Test
     void login_200_JWT발급() throws Exception {
-        given(authService.loginWithPin("01012345678", "123456"))
+        given(authService.loginWithPin(eq("01012345678"), eq("123456"), any(), any(), any(), any()))
                 .willReturn(new LoginResponse("access-token", "refresh-token"));
 
         mockMvc.perform(post("/api/auth/login")
@@ -115,7 +116,7 @@ class AuthControllerTest {
 
     @Test
     void login_PIN불일치_401() throws Exception {
-        given(authService.loginWithPin("01012345678", "000000"))
+        given(authService.loginWithPin(eq("01012345678"), eq("000000"), any(), any(), any(), any()))
                 .willThrow(new BusinessException(ErrorCode.PIN_INVALID));
 
         mockMvc.perform(post("/api/auth/login")

@@ -1,5 +1,6 @@
 package com.ssafy.tax7i.payment.controller;
 
+import com.ssafy.tax7i.global.audit.Auditable;
 import com.ssafy.tax7i.global.response.SuccessResponse;
 import com.ssafy.tax7i.payment.dto.*;
 import com.ssafy.tax7i.payment.entity.PaymentStatus;
@@ -25,6 +26,7 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    @Auditable(action = "PAYMENT_AUTHORIZE")
     @PostMapping("/authorize")
     public ResponseEntity<SuccessResponse<PaymentAuthorizeResponse>> authorize(
             @AuthenticationPrincipal Long userId,
@@ -33,6 +35,7 @@ public class PaymentController {
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "PAYMENT_CAPTURE")
     @PostMapping("/{paymentId}/capture")
     public ResponseEntity<SuccessResponse<PaymentCaptureResponse>> capture(
             @AuthenticationPrincipal Long userId,
@@ -41,6 +44,7 @@ public class PaymentController {
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "PAYMENT_CANCEL")
     @PostMapping("/{paymentId}/cancel")
     public ResponseEntity<SuccessResponse<PaymentCancelResponse>> cancel(
             @AuthenticationPrincipal Long userId,
@@ -69,6 +73,7 @@ public class PaymentController {
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "QR_PAYMENT")
     @PostMapping("/qr")
     public ResponseEntity<SuccessResponse<QrPaymentResponse>> processQrPayment(
             @AuthenticationPrincipal Long userId,
@@ -79,6 +84,7 @@ public class PaymentController {
 
     // ───────────── QR 토큰 결제 (MPM) ─────────────
 
+    @Auditable(action = "QR_TOKEN_CREATE")
     @PostMapping("/qr/token")
     public ResponseEntity<SuccessResponse<QrTokenCreateResponse>> createQrToken(
             @AuthenticationPrincipal Long userId,
@@ -97,6 +103,7 @@ public class PaymentController {
     }
 
     // 가맹점(수신자)용 — userId는 인증 강제 목적, 결제 소유자 검증은 하지 않음 (호출자 ≠ 결제 생성자)
+    @Auditable(action = "QR_PAYMENT_CONFIRM")
     @PostMapping("/qr/token/{token}/confirm")
     public ResponseEntity<SuccessResponse<QrPaymentResponse>> confirmQrPayment(
             @AuthenticationPrincipal Long userId,
@@ -122,6 +129,7 @@ public class PaymentController {
 
     // ───────────── 가맹점 QR 결제 (MPM) ─────────────
 
+    @Auditable(action = "MERCHANT_QR_TOKEN_CREATE")
     @PostMapping("/qr/merchant-token")
     public ResponseEntity<SuccessResponse<MerchantQrTokenResponse>> createMerchantQrToken(
             @Valid @RequestBody MerchantQrCreateRequest request) {
@@ -136,6 +144,7 @@ public class PaymentController {
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "MERCHANT_QR_PAY")
     @PostMapping("/qr/merchant-token/{token}/pay")
     public ResponseEntity<SuccessResponse<QrPaymentResponse>> payMerchantQr(
             @AuthenticationPrincipal Long userId,

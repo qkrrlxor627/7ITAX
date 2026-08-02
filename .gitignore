@@ -939,6 +939,7 @@ $RECYCLE.BIN/
 
 # personal
 .claude
+.claude-screenshots/
 docdoc/
 CLAUDE.md
 

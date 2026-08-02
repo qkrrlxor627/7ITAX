@@ -6,6 +6,7 @@ import com.ssafy.tax7i.global.exception.BusinessException;
 import com.ssafy.tax7i.global.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -17,6 +18,7 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "ai.mock.enabled", havingValue = "false", matchIfMissing = true)
 public class AiServiceClient {
 
     private final RestTemplate aiRestTemplate;

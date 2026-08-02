@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# 알림 규칙 파일 (골든 시그널)
+rule_files:
+  - 'alert.rules.yml'
+
+# 규칙 위반 시 알림을 보낼 Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # Spring Boot 백엔드 (로컬 8080에서 bootRun으로 실행 중인 앱)
+  # Prometheus가 Docker 안에서 돌기 때문에 host.docker.internal로 호스트에 접근
+  - job_name: 'tax7i-backend'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'tax7i'
+
+  # 백엔드를 Docker 컨테이너로 띄울 경우(worker 등) — 같은 네트워크의 서비스명으로 스크랩
+  # - job_name: 'tax7i-worker'
+  #   metrics_path: '/actuator/prometheus'
+  #   static_configs:
+  #     - targets: ['worker:8080']
+
+  # Prometheus 자기 자신
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

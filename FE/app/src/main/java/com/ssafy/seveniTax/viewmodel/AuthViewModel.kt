@@ -229,7 +229,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, pinFailCount = 0, errorMessage = "") }
             try {
-                authRepository.setupPin(state.verifyToken, state.pin)
+                authRepository.setupPin(state.verifyToken, state.pin, state.agreedTermIds)
                 _uiState.update { it.copy(isLoading = false, authComplete = true) }
                 onSuccess()
             } catch (e: Exception) {
