@@ -1,0 +1,110 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "tax7i - Spring Boot Overview",
+  "tags": ["tax7i", "spring-boot"],
+  "time": { "from": "now-30m", "to": "now" },
+  "refresh": "10s",
+  "templating": {
+    "list": [
+      {
+        "name": "application",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(jvm_memory_used_bytes, application)",
+        "refresh": 2,
+        "includeAll": false,
+        "current": { "text": "tax7i", "value": "tax7i" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "HTTP 요청률 (req/s, uri별)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"$application\"}[1m])) by (uri)",
+          "legendFormat": "{{uri}}"
+        }
+      ]
+    },
+    {
+      "title": "HTTP 에러율 (4xx/5xx, req/s)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"$application\", status=~\"4..\"}[1m]))",
+          "legendFormat": "4xx"
+        },
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"$application\", status=~\"5..\"}[1m]))",
+          "legendFormat": "5xx"
+        }
+      ]
+    },
+    {
+      "title": "응답시간 p95 (초, uri별)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m])) by (le, uri))",
+          "legendFormat": "{{uri}}"
+        }
+      ]
+    },
+    {
+      "title": "JVM Heap/Non-Heap 메모리 사용량",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{application=\"$application\"}) by (area)",
+          "legendFormat": "{{area}}"
+        }
+      ]
+    },
+    {
+      "title": "CPU 사용률 (process / system)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 }, "overrides": [] },
+      "targets": [
+        { "expr": "process_cpu_usage{application=\"$application\"}", "legendFormat": "process" },
+        { "expr": "system_cpu_usage{application=\"$application\"}", "legendFormat": "system" }
+      ]
+    },
+    {
+      "title": "HikariCP DB 커넥션 (active / idle)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        { "expr": "hikaricp_connections_active{application=\"$application\"}", "legendFormat": "active" },
+        { "expr": "hikaricp_connections_idle{application=\"$application\"}", "legendFormat": "idle" },
+        { "expr": "hikaricp_connections_pending{application=\"$application\"}", "legendFormat": "pending" }
+      ]
+    },
+    {
+      "title": "JVM 스레드 / GC pause (초)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        { "expr": "jvm_threads_live_threads{application=\"$application\"}", "legendFormat": "live threads" },
+        { "expr": "rate(jvm_gc_pause_seconds_sum{application=\"$application\"}[1m])", "legendFormat": "gc pause/s" }
+      ]
+    }
+  ]
+}

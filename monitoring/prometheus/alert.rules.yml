@@ -1,0 +1,64 @@
+groups:
+  - name: tax7i-golden-signals
+    rules:
+      # 가용성 — 백엔드 타깃이 1분간 응답 없음
+      - alert: BackendDown
+        expr: up{job="tax7i-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          application: tax7i
+        annotations:
+          summary: "백엔드 DOWN (tax7i)"
+          description: "{{ $labels.instance }} 가 1분 이상 스크랩에 응답하지 않습니다."
+
+      # Errors — 5xx 비율 > 5% (1분 지속)
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="tax7i", status=~"5.."}[1m]))
+          /
+          sum(rate(http_server_requests_seconds_count{application="tax7i"}[1m]))
+          > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          application: tax7i
+        annotations:
+          summary: "5xx 에러율 급증 (tax7i)"
+          description: "최근 1분간 5xx 비율이 5%를 초과했습니다."
+
+      # Latency — p95 응답시간 > 2초 (2분 지속)
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{application="tax7i"}[5m])) by (le)
+          ) > 2
+        for: 2m
+        labels:
+          severity: warning
+          application: tax7i
+        annotations:
+          summary: "응답시간 p95 > 2초 (tax7i)"
+          description: "95퍼센타일 응답시간이 2초를 초과했습니다."
+
+      # Saturation — process CPU > 80% (2분 지속)
+      - alert: HighCpuUsage
+        expr: process_cpu_usage{application="tax7i"} > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          application: tax7i
+        annotations:
+          summary: "CPU 사용률 > 80% (tax7i)"
+          description: "프로세스 CPU 사용률이 2분 이상 80%를 초과했습니다."
+
+      # Saturation — DB 커넥션 풀 대기 발생 (1분 지속)
+      - alert: DbConnectionPoolPending
+        expr: hikaricp_connections_pending{application="tax7i"} > 0
+        for: 1m
+        labels:
+          severity: warning
+          application: tax7i
+        annotations:
+          summary: "DB 커넥션 풀 대기 발생 (tax7i)"
+          description: "HikariCP 커넥션을 얻지 못하고 대기 중인 스레드가 있습니다."
