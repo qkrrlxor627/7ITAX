@@ -40,6 +40,7 @@ app:
   test-login:
     enabled: false
 
+# SSAFY 교육 과정 종료로 서버 접근 불가 — 키 미설정 시 빈 값으로 기동된다.
 ssafy:
   oauth:
     authorization-uri: https://project.ssafy.com/oauth/sso-check
@@ -68,3 +69,23 @@ solapi:
   api-key: ${SOLAPI_API_KEY:}
   api-secret: ${SOLAPI_API_SECRET:}
   sender-phone: ${SOLAPI_SENDER_PHONE:}
+
+# Actuator: 모니터링(Prometheus/Grafana)용 엔드포인트 노출
+# 운영 환경에서는 별도 management.server.port 분리 + 인증 적용 권장
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true

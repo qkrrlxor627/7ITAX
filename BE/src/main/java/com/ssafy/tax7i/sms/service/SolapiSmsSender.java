@@ -9,6 +9,7 @@ import com.ssafy.tax7i.global.exception.ErrorCode;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -16,6 +17,7 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "sms.mock.enabled", havingValue = "false", matchIfMissing = true)
 @RequiredArgsConstructor
 public class SolapiSmsSender implements SmsSender {
 
