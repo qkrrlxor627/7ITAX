@@ -12,13 +12,14 @@
 ## 프로젝트 구조
 
 ```
-S14P21C203/
-├── BE/         Spring Boot 3.x (Java 17) — REST API 서버
-├── FE/         Android (Kotlin, Jetpack Compose) — 모바일 앱
-├── ai/         FastAPI (Python 3.11) — AI 챗봇 / 세목 분류
-├── db/         PostgreSQL 초기화 및 마이그레이션 SQL
-├── exec/       포팅 매뉴얼 및 산출물
-└── docs/       API 문서
+7ITAX/
+├── BE/          Spring Boot 3.x (Java 17) — REST API 서버
+├── FE/          Android (Kotlin, Jetpack Compose) — 모바일 앱
+├── ai/          FastAPI (Python 3.11) — AI 챗봇 / 세목 분류
+├── db/          PostgreSQL 초기화 및 마이그레이션 SQL
+├── monitoring/  Prometheus / Grafana / Alertmanager 설정
+├── exec/        포팅 매뉴얼 및 산출물
+└── docs/        API 문서, 진단 기록, 샘플 데이터
 ```
 
 ## 기술 스택
@@ -97,7 +98,7 @@ Jenkins Pipeline으로 자동 빌드/배포됩니다. 상세 내용은 [포팅 �
 |--------|---------------|
 | 인증 | `POST /api/auth/login`, `/verify-identity`, `/setup-pin` |
 | 계좌 | `GET/POST /api/banking/accounts` |
-| 카드 | `GET/POST /api/cards`, `POST /api/cards/{id}/deposit` |
+| 카드 | `GET/POST /api/cards`, `POST /api/cards/{id}/activate`, `/payment` |
 | 결제 | `POST /api/payments/authorize`, `/qr` |
 | 장부 | `GET/POST /api/book-entries`, `PATCH /{id}/confirm` |
 | 세목분류 | `POST /api/classification` |
@@ -115,4 +116,6 @@ Jenkins Pipeline으로 자동 빌드/배포됩니다. 상세 내용은 [포팅 �
 
 - [포팅 매뉴얼](exec/포팅_매뉴얼.md)
 - [Export API 문서](docs/export-api-docs.md)
-- [기획서](planning.md)
+- [모니터링 가이드](docs/monitoring.md)
+- [작업 기록](WORK_LOG.md)
+- [세법 신고 로직 정리](tax.md)

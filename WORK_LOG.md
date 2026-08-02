@@ -5,6 +5,56 @@
 
 ---
 
+## 2026-08-03: 저장소 구조 정리 및 미사용 코드 제거
+
+### 배경
+PR #2 머지 후 저장소가 지저분한 상태였다. 루트에 7iTAX와 무관한 안드로이드 프로젝트 3개,
+시점별 진단 문서 4개, GitLab 시절 템플릿이 흩어져 있었고 참조되지 않는 코드도 남아 있었다.
+
+### 작업 내역
+
+#### 1. 무관한 안드로이드 프로젝트 3개 삭제 (124개 파일)
+- `2026_oneday_journal/` (`com.example.a2026_oneday_journal`)
+- `MyApplication/` (`com.example.myapplication`)
+- `jieonPractice/` (`com.example.jieonpractice`)
+- 근거: 모두 `com.example.*` 패키지의 별개 Android 프로젝트. 7iTAX 코드·빌드 설정에서 참조 0곳
+- git 히스토리에는 남아 있어 필요 시 복구 가능
+
+#### 2. 미사용 코드 제거 (5개)
+| 파일 | 근거 |
+|------|------|
+| `card/dto/CardBalanceResponse.java` | 참조 0곳 |
+| `card/dto/CardDepositRequest.java` | 참조 0곳 |
+| `card/dto/CardDepositResponse.java` | 참조 0곳 |
+| `card/dto/CreateCardFromAccountRequest.java` | 참조 0곳 |
+| `payment/event/BookEntryCreationFailedEvent.java` | 참조 0곳 |
+
+- `CardController`에 deposit 엔드포인트가 없는데 DTO만 남아 있던 상태였다
+  (README는 `POST /api/cards/{id}/deposit`를 문서화 중이었음 — 함께 수정)
+- **주의**: 정적 "미참조" 분석만으로 판단하면 안 된다. `SecurityConfig`, `CacheConfig`,
+  `AsyncRetryConfig`, `SchedulingConfig` 등은 `@Configuration`이라 코드 참조가 없는 게 정상이며
+  삭제하면 앱이 깨진다. 어노테이션을 확인해 프레임워크 생성 빈은 전부 제외했다
+
+#### 3. 파일 구조 정리
+- **`excel/` → `docs/samples/`** — 세무 신고 엑셀 3개(개발용 참고 샘플). 빈 `excel/` 디렉터리 제거
+- **루트 진단 문서 4개 → `docs/`** — `todoerror.md`, `wehave0702.md`, `0722ready.md`, `monitoring.md`
+  루트에는 `README.md`, `WORK_LOG.md`, `tax.md`와 빌드 설정만 남김
+- **`.gitlab/` → `.github/`** — 저장소가 GitHub로 이전됐는데 GitLab 템플릿이 남아 있어 동작하지 않던 상태.
+  삭제 대신 GitHub 형식으로 전환해 실제로 쓰이도록 함
+  - `issue_templates/{Bug,Feature}.md` → `.github/ISSUE_TEMPLATE/{bug,feature}.md`
+  - `merge_request_templates/Default.md` → `.github/pull_request_template.md`
+
+#### 4. README 실제 상태와 맞춤
+- 프로젝트 구조: 루트명 `S14P21C203/` → `7ITAX/`, `monitoring/` 추가, `docs/` 설명 갱신
+- 카드 엔드포인트: 존재하지 않는 `/deposit` → 실제 존재하는 `/activate`, `/payment`
+- 문서 링크: 존재하지 않는 `planning.md` 제거, 모니터링 가이드·작업 기록·세법 정리 링크 추가
+
+### 결과
+- **BE 테스트 308개 통과** (실패 0 / 오류 0 / 스킵 1) — 삭제한 코드가 실제로 미사용이었음을 확인
+- 139개 파일 정리, 3182줄 삭제
+
+---
+
 ## 2026-08-02: PR #2 머지 및 머지 후 검증
 
 ### 배경
