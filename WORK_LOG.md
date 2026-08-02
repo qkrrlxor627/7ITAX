@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-08-02: PR #2 머지 및 머지 후 검증
+
+### 배경
+`feat/local-dev-update` 브랜치로 올린 작업(아래 항목)에 대해 사용자가 PR #2를 생성·머지했다.
+머지 결과가 의도대로 반영됐는지 점검한 기록.
+
+### 점검 내역
+- **머지 커밋**: `ab24bca` (`66ab757` + `6cf2192` 2-부모 머지 커밋). `main`이 `66ab757` → `ab24bca`로 이동
+- **트리 동일성**: `git diff ab24bca 6cf2192` 결과 없음 → 머지 과정에서 내용 변형·충돌 해결 없이 그대로 반영됨
+- **커밋 6개 전부 `main`에 포함** 확인 (`d778373`, `a1672c6`, `c65530b`, `f40120d`, `c0b813b`, `6cf2192`)
+- **신규 파일 존재 확인**: MockAiServiceClient, MockSmsSender, AuditLogAspect,
+  AdditionalAuthLoginRequest, ClassificationRepository, `monitoring/`, `monitoring.md`, `WORK_LOG.md`
+- **테스트 재실행** (머지된 `main`에서 `cleanTest test` 강제 실행): 308개 통과, 실패 0 / 오류 0 / 스킵 1
+- **위생 점검**: `.claude-screenshots/` 미추적 확인, 시크릿 스캔 결과 하드코딩된 키 없음
+
+### 발견 사항
+- **`docs/samples/`는 테스트 산출물이다.** `BE/src/test/java/com/ssafy/tax7i/export/SampleExportGenerator.java:19`가
+  `../docs/samples`에 파일을 직접 쓰기 때문에, `./gradlew test`를 돌릴 때마다 워킹 트리가 더러워진다.
+  최초에 이 파일들이 "수정됨"으로 보였던 것도 같은 이유. 커밋에서 제외한 판단이 결과적으로 맞았다.
+  → 개선하려면 출력 경로를 빌드 디렉터리로 바꾸거나, 샘플 생성을 별도 태스크로 분리할 것
+
+### 남은 작업
+- **`feat/local-dev-update` 브랜치 정리** — PR #2 머지 완료로 역할이 끝났다. 로컬·원격 모두 삭제 가능
+- `application-local.yaml` 미커밋 이슈는 아래 항목 참조 (여전히 유효)
+
+---
+
 ## 2026-08-02: 미커밋 로컬 작업 GitHub 반영 (`feat/local-dev-update`)
 
 ### 배경
