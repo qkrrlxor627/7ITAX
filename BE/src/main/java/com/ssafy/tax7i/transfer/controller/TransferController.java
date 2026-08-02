@@ -1,5 +1,6 @@
 package com.ssafy.tax7i.transfer.controller;
 
+import com.ssafy.tax7i.global.audit.Auditable;
 import com.ssafy.tax7i.global.response.SuccessResponse;
 import com.ssafy.tax7i.transfer.dto.P2pTransferRequest;
 import com.ssafy.tax7i.transfer.dto.TransferResponse;
@@ -20,6 +21,7 @@ public class TransferController {
 
     private final TransferService transferService;
 
+    @Auditable(action = "P2P_TRANSFER")
     @PostMapping("/p2p")
     public ResponseEntity<SuccessResponse<TransferResponse>> p2pTransfer(
             @AuthenticationPrincipal Long userId,
@@ -28,6 +30,7 @@ public class TransferController {
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "WITHDRAW")
     @PostMapping("/withdraw")
     public ResponseEntity<SuccessResponse<TransferResponse>> withdraw(
             @AuthenticationPrincipal Long userId,
