@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-08-03: 전체 스택 구동 검증 (BE / FE / ai / db / infra)
+
+### 배경
+저장소 정리(67bb628) 후 "지금 기준으로 전부 구동되는지, 각 영역이 어디서 막히는지"를
+확인해야 했다. 정적 분석이 아니라 실제로 빌드·기동하고 기능별로 호출해 검증했다.
+
+### 작업 내역
+- BE: `cleanTest test` → 308 통과, `bootRun` 기동 후 컨트롤러 16개 엔드포인트 호출
+- FE: `:app:assembleDebug` → `app-debug.apk` 생성 확인
+- ai: `docker compose build ai`(9.73GB) → 컨테이너 내 pytest 실행, 서비스 기동
+- db: 25테이블 + 참조데이터(가맹점 84, 세율구간 16, MCC 33 등) 적재 확인
+- infra: `docker compose config` 유효성 확인
+
+### 결과
+- **정상**: BE 빌드·테스트·기동·기능 전부(내보내기 7종은 실제 XLSX/PDF 바이트 생성 확인),
+  FE 안드로이드 빌드, ai 이미지 빌드, db 스키마·시드
+- **결함 9건 발견** — 상세는 [docs/verification-2026-08-03.md](docs/verification-2026-08-03.md)
+  - BE: 내보내기 `Content-Disposition` 헤더 누락(한글 파일명 ISO-8859-1 인코딩 실패),
+    필수 파라미터 누락 시 400 대신 500
+  - ai: 리팩터링 후 stale 테스트 27개, 첫 기동 인덱싱이 약 3.8시간(37분에 1,000/6,246건)으로
+    healthcheck 유예(600s)를 크게 초과해 worker 영구 미기동, reranker 모델 이미지 미포함,
+    테스트 의존성 미선언, 평가 스크립트 깨진 참조
+  - FE: webview 미구현(28개 중 24개 빈 파일) + 안드로이드 연동부 dead code,
+    루트에 무관한 Vite 스캐폴드 17개
+- **환경 이슈(저장소 결함 아님)**: 포트 5432/6379 타 프로젝트 점유, 6월 postgres 볼륨 잔존,
+  추적되지 않는 `application-local.yaml`이 `DB_HOST`/`DB_PORT`를 무력화, 로컬 Python 3.9
+
+### 변경된 파일
+- `docs/verification-2026-08-03.md` (신규)
+- `WORK_LOG.md`
+
+---
+
 ## 2026-08-03: 저장소 구조 정리 및 미사용 코드 제거
 
 ### 배경
