@@ -1,16 +1,29 @@
 package com.ssafy.tax7i.auth.controller;
 
-import com.ssafy.tax7i.auth.dto.*;
+import com.ssafy.tax7i.auth.dto.AdditionalAuthLoginRequest;
+import com.ssafy.tax7i.auth.dto.IdentityVerifyRequest;
+import com.ssafy.tax7i.auth.dto.IdentityVerifyResponse;
+import com.ssafy.tax7i.auth.dto.LoginResponse;
+import com.ssafy.tax7i.auth.dto.PinLoginRequest;
+import com.ssafy.tax7i.auth.dto.PinSetupRequest;
+import com.ssafy.tax7i.auth.dto.TokenReissueRequest;
 import com.ssafy.tax7i.auth.service.AuthService;
+import com.ssafy.tax7i.global.audit.Auditable;
 import com.ssafy.tax7i.global.exception.BusinessException;
 import com.ssafy.tax7i.global.exception.ErrorCode;
 import com.ssafy.tax7i.global.response.SuccessResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,6 +35,7 @@ public class AuthController {
     @Value("${app.test-login.enabled:false}")
     private boolean testLoginEnabled;
 
+    @Auditable(action = "IDENTITY_VERIFY")
     @PostMapping("/verify-identity")
     public ResponseEntity<SuccessResponse<IdentityVerifyResponse>> verifyIdentity(
             @Valid @RequestBody IdentityVerifyRequest request) {
@@ -29,21 +43,48 @@ public class AuthController {
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "PIN_SETUP")
     @PostMapping("/setup-pin")
     public ResponseEntity<SuccessResponse<LoginResponse>> setupPin(
             @RequestHeader("X-Verify-Token") String verifyToken,
             @Valid @RequestBody PinSetupRequest request) {
-        LoginResponse response = authService.setupPin(verifyToken, request.pin());
+        LoginResponse response = authService.setupPin(
+                verifyToken,
+                request.pin(),
+                request.deviceId(),
+                request.consents()
+        );
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "LOGIN")
     @PostMapping("/login")
     public ResponseEntity<SuccessResponse<LoginResponse>> login(
-            @Valid @RequestBody PinLoginRequest request) {
-        LoginResponse response = authService.loginWithPin(request.phoneNumber(), request.pin());
+            @Valid @RequestBody PinLoginRequest request,
+            HttpServletRequest httpRequest) {
+        LoginResponse response = authService.loginWithPin(
+                request.phoneNumber(),
+                request.pin(),
+                request.deviceId(),
+                request.deviceName(),
+                clientIp(httpRequest),
+                httpRequest.getHeader("User-Agent")
+        );
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "LOGIN_ADDITIONAL_AUTH")
+    @PostMapping("/login/additional-auth")
+    public ResponseEntity<SuccessResponse<LoginResponse>> completeAdditionalAuth(
+            @Valid @RequestBody AdditionalAuthLoginRequest request) {
+        LoginResponse response = authService.completeAdditionalAuth(
+                request.additionalAuthToken(),
+                request.otpCode()
+        );
+        return ResponseEntity.ok(SuccessResponse.of(response));
+    }
+
+    @Auditable(action = "TOKEN_REISSUE")
     @PostMapping("/reissue")
     public ResponseEntity<SuccessResponse<LoginResponse>> reissue(
             @Valid @RequestBody TokenReissueRequest request) {
@@ -51,6 +92,7 @@ public class AuthController {
         return ResponseEntity.ok(SuccessResponse.of(response));
     }
 
+    @Auditable(action = "LOGOUT")
     @PostMapping("/logout")
     public ResponseEntity<SuccessResponse<Void>> logout(
             @RequestHeader("Authorization") String authorization) {
@@ -62,7 +104,6 @@ public class AuthController {
         return ResponseEntity.ok(SuccessResponse.ok());
     }
 
-    // 테스트 전용 — app.test-login.enabled 프로퍼티로 보호 (기본값 false, local 프로파일에서만 true)
     @PostMapping("/test-login")
     public ResponseEntity<SuccessResponse<LoginResponse>> testLogin(
             @RequestParam(value = "email", required = false) String email) {
@@ -71,5 +112,17 @@ public class AuthController {
         }
         LoginResponse response = authService.testLogin(email);
         return ResponseEntity.ok(SuccessResponse.of(response));
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(forwardedFor)) {
+            return forwardedFor;
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (StringUtils.hasText(realIp)) {
+            return realIp;
+        }
+        return request.getRemoteAddr();
     }
 }

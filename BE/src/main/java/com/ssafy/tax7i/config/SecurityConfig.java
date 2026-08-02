@@ -44,6 +44,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/payments/qr/merchant-token/*/pay").authenticated()
                         // 가맹점 QR 생성/조회/이벤트 구독은 공개 (MPM: 가맹점 기기 생성 + 결제 전 미인증 조회 흐름)
                         .requestMatchers("/api/payments/qr/merchant-token/**").permitAll()
+                        // Actuator 모니터링 엔드포인트 (Prometheus 스크랩용)
+                        // 운영 환경에서는 내부망/별도 포트로 제한 권장
+                        .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/actuator/info").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

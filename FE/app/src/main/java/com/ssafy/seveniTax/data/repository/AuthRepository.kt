@@ -7,7 +7,7 @@ import com.ssafy.seveniTax.data.model.common.ApiResponse
 
 interface AuthRepository {
     suspend fun verifyIdentity(request: VerifyIdentityRequest): ApiResponse<VerifyIdentityResponse>
-    suspend fun setupPin(verifyToken: String, pin: String): ApiResponse<TokenResponse>
+    suspend fun setupPin(verifyToken: String, pin: String, agreedConsentTypes: Set<String>): ApiResponse<TokenResponse>
     suspend fun login(phoneNumber: String, pin: String): ApiResponse<TokenResponse>
     suspend fun reissue(refreshToken: String): ApiResponse<TokenResponse>
     suspend fun logout()
