@@ -271,7 +271,7 @@ private fun AiAvatar() {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_ai_robot),
+            painter = painterResource(R.drawable.ic_ai_sparkle),
             contentDescription = "AI",
             tint = Color.Unspecified,
             modifier = Modifier.size(22.dp)

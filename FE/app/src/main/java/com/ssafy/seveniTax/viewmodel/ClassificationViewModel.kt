@@ -70,7 +70,7 @@ class ClassificationViewModel @Inject constructor(
                 val response = classificationRepository.classify(request)
                 val body = response.body()
                 if (response.isSuccessful && body?.status == "success" && body.data != null) {
-                    Log.d(TAG, "  분류 결과: ${body.data.taxCategory} (${body.data.confidenceScore}%)")
+                    Log.d(TAG, "  분류 결과: ${body.data.taxCategory} (${body.data.confidence})")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         result = body.data

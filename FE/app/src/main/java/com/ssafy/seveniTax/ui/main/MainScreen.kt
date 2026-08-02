@@ -228,7 +228,6 @@ fun MainScreen(
                     modifier = modifier,
                     onNotificationClick = { isNotificationSheetOpen = true },
                     onMenuClick = { isSideMenuOpen = true },
-                    onQrPaymentClick = { openQrPayment() },
                     notificationCount = notifications.size
                 )
                 BottomTab.SETTINGS -> SettingsScreen(navController, modifier)
@@ -238,6 +237,10 @@ fun MainScreen(
                     onBack = { selectedTab = BottomTab.HOME },
                     modifier = modifier
                 )
+                BottomTab.AI -> {
+                    navController.navigate(Route.AiChat.path)
+                    selectedTab = BottomTab.HOME
+                }
             }
         }
 

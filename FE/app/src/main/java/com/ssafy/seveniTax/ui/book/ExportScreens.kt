@@ -385,17 +385,17 @@ fun ExportFormatScreen(
                     if (!uiState.isExporting) {
                         when (format.id) {
                             "pdf" -> when (purpose) {
-                                "vat1" -> viewModel.exportVatPdf(year, 1)
-                                "vat2" -> viewModel.exportVatPdf(year, 2)
-                                "income" -> viewModel.exportIncomeTaxPdf(year)
-                                "local" -> viewModel.exportLocalTaxPdf(year)
+                                "vat1" -> viewModel.exportVat(year, 1)
+                                "vat2" -> viewModel.exportVat(year, 2)
+                                "income" -> viewModel.exportIncomeTax(year)
+                                "local" -> viewModel.exportLocalTax(year)
                                 else -> viewModel.exportSimpleLedgerPdf(year)
                             }
                             "excel" -> when (purpose) {
                                 "vat1" -> viewModel.exportVatExcel(year, 1)
                                 "vat2" -> viewModel.exportVatExcel(year, 2)
                                 "income" -> viewModel.exportIncomeTaxExcel(year)
-                                "local" -> viewModel.exportLocalTaxExcel(year)
+                                "local" -> viewModel.exportLocalTax(year)
                                 else -> viewModel.exportIncomeTaxExcel(year)
                             }
                         }

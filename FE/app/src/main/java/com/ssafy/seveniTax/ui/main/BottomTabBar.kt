@@ -91,7 +91,7 @@ fun AiChatFab(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_ai_robot),
+            painter = painterResource(R.drawable.ic_ai_sparkle),
             contentDescription = "AI 챗봇",
             tint = Color.Unspecified,
             modifier = Modifier.size(32.dp)

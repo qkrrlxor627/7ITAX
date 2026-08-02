@@ -303,7 +303,6 @@ fun NavGraph(navController: NavHostController, pendingNavigateTo: String? = null
             val uiState by classificationViewModel.uiState.collectAsState()
             ClassificationResultScreen(
                 navController = navController,
-                classificationViewModel = classificationViewModel,
                 onConfirm = {
                     // AI 추천 경비로 확정 → API 호출
                     val result = uiState.result
@@ -538,7 +537,6 @@ fun NavGraph(navController: NavHostController, pendingNavigateTo: String? = null
         composable(Route.BulkClassificationLoading.path) {
             BulkClassificationLoadingScreen(
                 navController = navController,
-                classificationViewModel = classificationViewModel,
                 onComplete = {
                     // 서버 업데이트 없이 결과만 전달 — 사용자가 "일괄 확정" 시 반영
                     navController.previousBackStackEntry?.savedStateHandle?.set("aiRecommended", true)
