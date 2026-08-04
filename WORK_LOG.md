@@ -5,6 +5,151 @@
 
 ---
 
+## 2026-08-04: 기능 검증 구역 분할 (11개 구역)
+
+### 배경
+"기능이 정상 작동하는지 하나씩 쪼개서 확인"하기 위해, 실제 컨트롤러·라우터·화면 목록을 뽑아
+의존 순서가 있는 검증 구역으로 나눴다. 앞 구역이 깨지면 뒤 구역 결과를 신뢰할 수 없으므로 **순서가 핵심**이다.
+
+### 의존 관계
+
+```text
+[0] 인프라 ──> [1] BE 기동 ──> [2] 인증/토큰 ──┬─> [3] 뱅킹 원장
+                                              ├─> [4] 결제/카드
+                                              ├─> [5] 장부/세목분류
+                                              └─> [6] 세금계산/신고서
+     [7] AI 단독 ─────────────> [8] BE↔AI 연동 (1+7 필요)
+                               [9] FE Android (1 필요)
+                               [10] 모니터링 (1 필요)
+```
+
+권장 순서: `[0]→[1]→[2]` 통과 후 `[3]~[6]` 병렬, `[8]~[10]` 마지막.
+`[7]`은 모델 다운로드가 오래 걸리므로 `[2]` 작업 중 백그라운드로 미리 기동해둔다.
+
+### 구역별 상세
+
+#### [0] 인프라 — postgres + redis
+- `docker compose up -d postgres redis`
+- compose에 **backend 서비스는 없다** — BE는 `bootRun` 전용
+- 확인: 컨테이너 2개 healthy, `db/init/01_schema.sql`·`02_seed_data.sql` 적재
+- ⚠️ redis는 `--requirepass ssafy`로 기동
+
+#### [1] BE 기동
+```bash
+cd BE
+AES_ENCRYPTION_KEY=<키> JWT_SECRET=<32바이트+> REDIS_PASSWORD=ssafy ./gradlew bootRun
+```
+- 확인: 컨텍스트 기동 + `./gradlew test` 308개 통과 (테스트 클래스 36개)
+- ⚠️ **JDK 17 필수** — 시스템 기본 JDK로는 Gradle 구동 불가
+- ⚠️ **`SPRING_PROFILES_ACTIVE=local` 사용 불가** — `application-local.yaml`이 `BE/.gitignore:44`로 제외돼 클론본에 없다
+
+#### [2] 인증/토큰 — 전체의 관문
+- `/api/auth`: `verify-identity` → `setup-pin` → `login` → `login/additional-auth` → `reissue` → `logout`
+- `/api/pay/pin`: 결제 전용 PIN (로그인 PIN과 분리된 `payPinHash`)
+- 확인: 로그인으로 JWT 확보(이후 전 구역이 의존). `reissue`·`logout`까지 돌려야 Redis 연동이 검증됨
+- 테스트: `AuthControllerTest`, `AuthServiceTest`, `JwtTokenProviderTest`, `JwtAuthenticationFilterTest`, `PinServiceTest`, `PayPinServiceTest`, `NiceIdentityMockServiceTest`
+
+#### [3] 뱅킹 원장
+- `/api/banking/accounts`, `/api/transfers` (p2p · withdraw)
+- 외부 금융망 없이 **DB 원장 100%**, 신규 계좌 500만원 시드
+- 테스트: `AccountServiceTest`, `AccountControllerTest`, `TransferServiceTest`, `TransferControllerTest`, `LocalBankingLedgerTest`
+
+#### [4] 결제/카드
+- `/api/payments` (QR merchant-token 포함), `/api/cards`
+- ⚠️ `POST /api/payments/qr/merchant-token/*/pay`만 인증 필수로 분리됨(SEC-1). **미인증 401이 정상 동작**
+- 테스트: `PaymentServiceTest`, `PaymentControllerTest`, `CardServiceTest`, `CardControllerTest`
+
+#### [5] 장부/세목분류
+- `/api/book-entries`, `/api/classification`
+- ⚠️ 장부 금액 필드는 **부가세 포함 원 결제금액**이 정본(공급가액 아님). 55,000 / 1,100,000 / 3,300,000이 올바른 값
+- 테스트: `BookEntryServiceTest`, `BookEntryControllerTest`, `BookEntryEventListenerTest`, `MccClassificationTest`, `AiCategoryMapperTest`, `TaxClassificationAiFallbackTest`, `ClassificationServiceTest`
+
+#### [6] 세금 계산/신고서
+- `/api/tax`, `/api/tax/vat-returns`, `/api/tax-estimation`, `/api/tax-calendar`, `/api/export`
+- 확인: `docs/samples/` CSV/PDF 6종과 실제 산출물 대조
+- 테스트: `TaxFullPipelineTest`, `TaxEstimationServiceTest`, `TaxEstimationControllerTest`, `TaxCalendarServiceTest`, `TaxSavingServiceTest`, `ExportControllerTest`, `AggregateResultTest`
+
+#### [7] AI 단독 (BE와 독립)
+- `ai/` FastAPI — `/api/v1/health`, `/api/v1/chat`, `/api/v1/transaction`. pytest 파일 20개
+- ⚠️ **최초 기동이 매우 느리다** — bge-m3 약 2GB 다운로드 + Chroma 자동 인덱싱 (compose healthcheck `start_period` 600초인 이유)
+- ⚠️ **`ANTHROPIC_API_KEY`가 없어도 기동되고 health는 green인데 chat만 실패한다**(AI-6). 가장 오판하기 쉬운 함정
+- ⚠️ `/transaction/classify`는 파인튜닝 모델 부재 시 규칙기반으로 degrade — 응답 `method`가 `rule_based`인지 `local_model`인지 확인할 것
+
+#### [8] BE↔AI 연동
+- BE `/api/chatbot` → AI. 정방향 경로·스키마 일치 확인됨
+- ⚠️ **개인화는 아직 동작하지 않는다(INT-1 잔여).** `ai/app/services/backend_client.py:67,96`이
+  `/api/v1/users/{id}/transactions`·`/business-info`를 호출하나 **BE에 해당 매핑 0건**(2026-08-04 재확인).
+  500은 나지 않고 **개인화만 생략된 일반 답변**이 반환되므로 "정상 동작"으로 오판하기 쉽다
+- 테스트: `ChatbotServiceTest`, `AiClassificationServiceTest`
+
+#### [9] FE Android
+- `FE/app/src/main/java/com/ssafy/seveniTax/ui/` 하위 15개 영역(auth · pay · payment · card · book · classification · calendar · ai · home · settings 등)
+- ⚠️ **자동 테스트가 사실상 없다** — `src/test`·`androidTest`에 템플릿 예제 2개뿐(`com.example.a71tax`). 전부 에뮬레이터 수동 확인
+- ⚠️ DEBUG는 `10.0.2.2:8080`로 정렬됐으나 **RELEASE는 죽은 `j14c203.p.ssafy.io`**(`Constants.kt:9,14`)
+- 별도로 `FE/webview`(Vite/TS) 존재 — DEBUG WebView는 `10.0.2.2:3000`을 바라봄
+
+#### [10] 모니터링
+- prometheus / alertmanager / grafana / webhook-logger
+- 확인: Prometheus target UP, `/actuator/prometheus` 노출, 알림 룰 발화
+- ⚠️ compose `worker`는 전용 프로파일 없이 백엔드 전체를 복제하는 구조라 별도 기동 검증 필요
+
+### 결과
+- 검증 구역 11개 확정. 코드 변경 없음(분석·문서화만)
+- 각 구역의 "알려진 지뢰"를 명시해, 통과처럼 보이지만 실제로는 degrade된 상태([7] health green / [8] 개인화 생략)를 구분할 수 있게 함
+
+### 변경된 파일 목록
+| 파일 | 변경 유형 |
+|------|----------|
+| `WORK_LOG.md` | 수정(본 항목 추가) |
+| `CLAUDE.md` | 신규 — 작업 기록 규칙 + 환경 함정 + 미해결 항목 정리 |
+| `.gitignore` | 수정 — `# personal` 블록에서 `CLAUDE.md` 제외 규칙 삭제(저장소 차원 규칙 문서이므로 추적) |
+
+---
+
+## 2026-08-04: 낡은 진단 문서 `todoerror.md` 제거
+
+### 배경
+`origin/main`을 pull해 최신화(`ab24bca`)한 뒤 루트 문서 4종(`todoerror.md`, `wehave0702.md`, `0722ready.md`, `WORK_LOG.md`)이
+서로 다른 시점에 작성돼 내용이 충돌하는 것을 확인했다. 이 중 `todoerror.md`는
+"로컬 구동 불가 원인" 목록인데, 이 문서가 지적한 문제 대부분을 아래 2026-06-05 항목이 이미 해결한 상태였다.
+
+### 작업 내역
+
+#### 1. 실제 코드와 대조해 낡은 서술 확인
+| `todoerror.md` 항목 | 실제 상태 |
+|---|---|
+| #2 API URL이 DEBUG/RELEASE 모두 `ssafy.io` 하드코딩 | **틀림** — `Constants.kt:6-7`에서 DEBUG는 이미 `http://10.0.2.2:8080/api/`. RELEASE만 잔존 |
+| #3 SSAFY OAuth 필요 | 해소 — 인증은 `NiceIdentityMockService` + PIN 기반 |
+| #4 opus 모델 ID `claude-opus-4-7` | **낡음** — 코드는 `claude-opus-4-8`(`ai/app/core/config.py:19`). `4-7`을 **설정해야 할 값으로 제시**하던 유일한 문서였음 |
+| #5 Solapi SMS 키 없으면 가입 불가 | 해소 — `MockSmsSender` 도입 |
+| #6 AES/JWT 미설정 | 해소 — `0722ready.md` BE-2에서 처리 |
+
+#### 2. 제거
+- `todoerror.md` 삭제. 아래 2026-08-02 항목의 변경 파일 목록(90행)에 남은 `todoerror.md` 언급은
+  당시 커밋의 사실 기록이므로 **수정하지 않았다**.
+
+### 결과
+- `claude-opus-4-7`을 설정값으로 안내하던 곳이 사라짐. 남은 `4-7` 언급은 `0722ready.md:77`의
+  CFG-3 수정 이력(`4-7` → `4-8`) 한 곳뿐이고, 이는 사실 기록이므로 유지
+- 코드 변경 없음 → 빌드/테스트 영향 없음
+- 유지 결정: `wehave0702.md`(미완 TODO 다수 — `audit_log` 테이블·`reauth-pin` API·`RiskScoreService` 모두 미구현 확인),
+  `0722ready.md`(INT-1 잔여 유효), `Jenkinsfile`, `.gitlab/`
+
+### 확인했으나 이번 범위에서 제외한 항목
+- **`ssafy.oauth` dead config** — `application.yaml:44-51`. Java 소비처 0건으로 미사용 확인
+  (2026-06-05에 주석 처리했으나 2026-08-02 rebase에서 기본값 방식으로 되살아남). 제거는 보류
+- **`application-local.yaml` 부재** — `BE/.gitignore:44`로 제외돼 클론본에 없다.
+  아래 2026-06-05 항목의 `SPRING_PROFILES_ACTIVE=local ./gradlew bootRun` 절차를 새로 클론한 환경에서 그대로 따라할 수 없음
+- **FE RELEASE URL** — `Constants.kt:9,14`가 여전히 `https://j14c203.p.ssafy.io`
+
+### 변경된 파일 목록
+| 파일 | 변경 유형 |
+|------|----------|
+| `todoerror.md` | 삭제 |
+| `WORK_LOG.md` | 수정(본 항목 추가) |
+
+---
+
 ## 2026-08-02: 미커밋 로컬 작업 GitHub 반영 (`feat/local-dev-update`)
 
 ### 배경
