@@ -2,6 +2,14 @@
 
 7iTAX — 개인사업자 세무 자동화. BE(Spring Boot) · FE(Android Compose) · ai(FastAPI) · PostgreSQL/Redis/ChromaDB.
 
+## 현재 진행 상황 (2026-08-04)
+
+문서 정리 완료, **기능 검증 착수 직전**. 다음 작업은 검증 구역 `[0]` (postgres + redis 기동)부터.
+
+- 브랜치 `docs/work-log-verification-zones`, PR [#3](https://github.com/qkrrlxor627/7ITAX/pull/3) open
+- 검증 구역 11개의 정의·의존 순서·구역별 지뢰는 `WORK_LOG.md`의 "기능 검증 구역 분할" 항목에 있다
+- 세션 재개 절차와 미착수 항목은 `WORK_LOG.md` 최상단 "세션 마무리 — 재개 지점 기록" 항목 참조
+
 ## 작업 기록 규칙 (필수)
 
 **저장소에 영향을 주는 작업을 완료할 때마다 `WORK_LOG.md` 맨 위에 항목을 추가한다.** 예외 없음.

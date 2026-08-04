@@ -5,6 +5,70 @@
 
 ---
 
+## 2026-08-04: 세션 마무리 — 재개 지점 기록
+
+### 배경
+문서 정리와 검증 계획 수립까지 마치고 세션을 종료한다. 다음 세션이 맥락 없이 시작해도
+바로 이어갈 수 있도록 현재 상태와 시작점을 남긴다.
+
+### 이번 세션에서 한 일 (시간순)
+
+1. **원격 최신화** — `origin/main`이 12커밋 앞서 있어 `main`으로 전환 후 fast-forward pull (`649afe2` → `ab24bca`).
+   기존 작업 브랜치 `feat/local-runnable`은 PR #1로 이미 머지된 상태라 유실 없음.
+   새로 들어온 것: 모니터링 스택, AOP 감사 로그, 추가인증 로그인, 외부 API Mock, 세목분류 리포지토리 분리
+2. **문서 충돌 진단** — 루트 문서 4종이 서로 다른 시점에 작성돼 내용이 어긋난 것을 코드와 대조해 확인
+3. **`todoerror.md` 제거** — 낡은 서술 확인 후 삭제
+4. **기능 검증 구역 11개 정리** — 실제 컨트롤러·라우터·화면 목록을 뽑아 의존 순서대로 분할
+5. **`CLAUDE.md` 신규 + `.gitignore` 수정** — 작업 기록 규칙을 저장소 차원 약속으로 명문화
+6. **커밋·푸시·PR** — `f1ec09b` → PR #3
+
+### 현재 상태
+
+| 항목 | 값 |
+|---|---|
+| 브랜치 | `docs/work-log-verification-zones` (원격과 동기) |
+| 커밋 | `f1ec09b` — `origin/main` 대비 1커밋 앞섬, 뒤처짐 0 |
+| PR | [#3](https://github.com/qkrrlxor627/7ITAX/pull/3) open — 머지 대기 |
+| 작업 트리 | 깨끗함 |
+| 코드 변경 | **없음** (문서만) → 빌드/테스트 영향 없음 |
+
+### 다음 세션 시작점
+
+**검증 구역 `[0]`부터 순서대로 진행한다.** 구역 정의는 아래 "기능 검증 구역 분할" 항목 참조.
+
+```bash
+# [0] 인프라 — compose에 backend 서비스는 없다(BE는 bootRun 전용)
+docker compose up -d postgres redis
+
+# [1] BE 기동 — JDK 17 필수, SPRING_PROFILES_ACTIVE=local 사용 불가
+cd BE
+AES_ENCRYPTION_KEY=<키> JWT_SECRET=<32바이트+> REDIS_PASSWORD=ssafy ./gradlew bootRun
+./gradlew test          # 308개 통과가 기준선
+
+# [7]은 bge-m3 약 2GB 다운로드로 오래 걸리므로 [2] 작업 중 백그라운드로 미리 띄울 것
+```
+
+재개 시 유의:
+- **`command grep` / `command find`를 쓸 것.** 맨 `grep`/`find`는 셸 함수에 가로채져 빈 결과 + exit 1을 반환한다(거짓 음성)
+- PR #3이 머지되지 않았다면 `docs/work-log-verification-zones`에서 계속 작업하고, 머지됐다면 `main`을 pull한 뒤 새 브랜치를 판다
+- 검증 결과는 구역 단위로 이 문서에 새 항목으로 기록한다
+
+### 아직 손대지 않은 것 (우선순위 순)
+
+1. **`application-local.yaml` 부재** — `BE/.gitignore:44`로 제외돼 클론본에 없다. `[1]` 진행 시 바로 부딪힌다. 실질 영향 가장 큼
+2. **INT-1 개인화** — BE에 `/api/v1/users/**` 엔드포인트 없음. `[8]`에서 확인 필요
+3. **`ssafy.oauth` dead config** — `application.yaml:44-51`, Java 소비처 0건
+4. **FE RELEASE URL** — `Constants.kt:9,14`가 죽은 `j14c203.p.ssafy.io`
+5. **FE 테스트 부재** — 템플릿 예제 2개뿐이라 `[9]`는 전부 수동 확인
+
+### 변경된 파일 목록
+| 파일 | 변경 유형 |
+|------|----------|
+| `WORK_LOG.md` | 수정(본 항목 추가) |
+| `CLAUDE.md` | 수정(현재 진행 상황 섹션 추가) |
+
+---
+
 ## 2026-08-04: 기능 검증 구역 분할 (11개 구역)
 
 ### 배경
