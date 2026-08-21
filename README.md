@@ -77,9 +77,6 @@ AES_ENCRYPTION_KEY=<키> JWT_SECRET=<키> REDIS_PASSWORD=ssafy ./gradlew bootRun
 Android Studio에서 FE/ 프로젝트 열기 → Run
 ```
 
-> 데모용 예시 키(실서비스에서는 반드시 교체):
-> `AES_ENCRYPTION_KEY=dGVzdC1hZXMtZW5jcnlwdGlvbi1rZXktMzItYnl0ZXM=`,
-> `JWT_SECRET=demo-jwt-secret-key-must-be-at-least-32-bytes!!`
 
 > 금융 기능은 자체 구현 로컬 뱅킹으로 동작하므로 SSAFY 금융망 키가 필요 없습니다.
 > 계좌/잔액/이체/카드결제는 DB 원장 위에서 처리되며, 신규 계좌는 데모용 시드 잔액을 갖습니다.
