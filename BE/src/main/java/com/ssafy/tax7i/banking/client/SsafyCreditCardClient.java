@@ -117,23 +117,6 @@ public class SsafyCreditCardClient {
         );
     }
 
-    public SsafyCreditCardListResponse getMyCards(String userKey) {
-        List<Card> cards = cardRepository.findByUser_SsafyUserKeyAndDeletedFalse(userKey);
-        List<SsafyCreditCardListResponse.CreditCardRec> recs = cards.stream()
-                .map(c -> {
-                    CardProduct p = CARD_CATALOG.stream()
-                            .filter(cp -> cp.cardUniqueNo().equals(c.getCardUniqueNo()))
-                            .findFirst()
-                            .orElse(CARD_CATALOG.get(0));
-                    return new SsafyCreditCardListResponse.CreditCardRec(
-                            c.getCardNoKey(), c.getCvc(), c.getCardUniqueNo(), p.issuerCode(), p.issuerName(),
-                            c.getCardName(), p.baselinePerformance(), p.maxBenefitLimit(), p.description(),
-                            c.getCardExpiryDate(), c.getWithdrawalAccountNo(), c.getWithdrawalDate());
-                })
-                .toList();
-        return new SsafyCreditCardListResponse(successHeader("inquireSignUpCreditCardList", newTransactionUniqueNo()), recs);
-    }
-
     @Transactional
     public SsafyCreditCardTransactionResponse createTransaction(String userKey, String cardNo, String cvc,
                                                                 Long merchantId, Long paymentBalance) {

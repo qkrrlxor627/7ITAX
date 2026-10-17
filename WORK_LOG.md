@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 0단계 묶음 C — 로컬 원장 전환 후 남은 미사용 메서드 제거 + 탐지 스크립트
+
+### 배경
+SSAFY 금융망 HTTP 클라이언트를 DB 원장으로 바꾸면서 호출되지 않는 메서드가 남았다(`docs/PRE_CICD.md` 0단계 묶음 C).
+
+### 작업 내역
+- 재확인: `command grep -rn "\bsearchMember\b|\bregisterMember\b|\bgetMyCards\b" BE/src` → 선언부 1건씩만(호출 0건)
+- 삭제: `SsafyFinanceClient.searchMember`·`registerMember`(구 `:190`,`:194`), `SsafyCreditCardClient.getMyCards`(구 `:120`)
+- **연쇄 삭제**(지시서 116행 규칙): `getMyCards` 삭제 후
+  - `scripts/find_unused_java.py`가 `banking/client/dto/SsafyCreditCardListResponse.java`를 새 클래스 후보로 출력 → 삭제
+  - `CardRepository.findByUser_SsafyUserKeyAndDeletedFalse`는 유일한 호출부가 `getMyCards`였다(main·test 검색 0건) → 삭제.
+    `AccountRepository`의 같은 이름 메서드는 `SsafyFinanceClient.java:55`가 사용 중이라 유지
+- `scripts/find_unused_java.py` 신규(지시서 141-211행을 그대로 추출)
+
+### 결과
+- `./gradlew compileJava compileTestJava test --no-daemon -q` exit 0, **tests=308 failures=0 errors=0 skipped=1**
+- 탐지 스크립트 결과: 삭제 전 클래스 5·메서드 23 (지시서 213행 수치와 일치) → 현재 **클래스 0·메서드 20**.
+  남은 20개는 확인 필요 5개(`ConsentService.getConsents/revokeConsent`, `getVehicleNoInsuranceRatio`, `AiCategoryMapper.mapToName/mapToCode`)와
+  프레임워크 호출 15개(리스너·스케줄러·AOP·JPA 컨버터·템플릿 getter·`@Recover`)
+- `git diff --cached --shortstat`(BE): 4 files changed, 53 deletions(-)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 지시서 "확인 필요" 표 7개 항목(ConsentService, getVehicleNoInsuranceRatio, AiCategoryMapper, `FE/src/`, `FE/webview/`, `Jenkinsfile`, `Ssafy*` 클래스명)은 건드리지 않음
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/.../banking/client/SsafyFinanceClient.java` | 메서드 2개 삭제 |
+| `BE/.../banking/client/SsafyCreditCardClient.java` | `getMyCards` 삭제 |
+| `BE/.../banking/client/dto/SsafyCreditCardListResponse.java` | 삭제(연쇄) |
+| `BE/.../card/repository/CardRepository.java` | 미사용 쿼리 메서드 삭제(연쇄) |
+| `scripts/find_unused_java.py` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 0단계 묶음 B — 참조 0건 BE 클래스 5개 제거
 
 ### 배경

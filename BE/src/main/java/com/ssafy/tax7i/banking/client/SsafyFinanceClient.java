@@ -187,14 +187,6 @@ public class SsafyFinanceClient {
 
     // ───────────── 멤버 (로컬 결정적 키) ─────────────
 
-    public String searchMember(String userId) {
-        return localUserKey(userId);
-    }
-
-    public String registerMember(String userId) {
-        return localUserKey(userId);
-    }
-
     public String getOrRegisterMember(String userId) {
         return localUserKey(userId);
     }
