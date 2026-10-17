@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 2단계 — 스케줄러·시드 데이터 스위치
+
+### 배경
+`SchedulingConfig`는 조건 없는 `@EnableScheduling`이라 BE 2대 구성에서 `TaxCalendarScheduler`(매일 09:00 FCM)가 중복 실행되고,
+`CardDataInitializer`는 조건 없는 `CommandLineRunner`라 운영 DB에도 더미 유저 2명(`01011111111`, `01022222222`)과 카드를 만든다(`docs/PRE_CICD.md` 2단계).
+
+### 작업 내역
+- `SchedulingConfig`: `@ConditionalOnProperty(name = "app.scheduling.enabled", havingValue = "true", matchIfMissing = true)`
+- `CardDataInitializer`: `@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true", matchIfMissing = true)`
+- 1단계 yaml이 두 키를 `APP_SCHEDULING_ENABLED`·`APP_SEED_ENABLED`(기본 true)로 연결 → 기본 동작 불변
+- 세법 기준 데이터 Initializer 4개(`TaxBracket`, `TaxParameter`, `TaxDeadline`, `BookEntryAmountBackfill`)는 운영에서도 필요하므로 불변
+
+### 결과
+- `./gradlew test` → **tests=308 failures=0 errors=0 skipped=1**
+- 빈 DB에서 `APP_SEED_ENABLED=false` 기동 확인은 컨테이너 경로가 생기는 4단계에서 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/java/com/ssafy/tax7i/config/SchedulingConfig.java` | 조건 애너테이션 추가 |
+| `BE/src/main/java/com/ssafy/tax7i/config/CardDataInitializer.java` | 조건 애너테이션 추가 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 1단계 — 설정 환경변수 외부화 + `ssafy.oauth` 죽은 설정 제거
 
 ### 배경
