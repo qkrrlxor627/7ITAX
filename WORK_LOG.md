@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 0단계 묶음 A — 서비스와 무관한 디렉토리·파일 제거
+
+### 배경
+저장소에 서비스와 무관한 연습 프로젝트, 산출물 사본, 빌드 불가 Dockerfile이 섞여 있다(`docs/PRE_CICD.md` 0단계).
+
+### 작업 내역
+- 삭제 직전 재확인(지시서 78-81행 검색, `--exclude-dir=node_modules,build,.gradle` 추가) → 5개 대상 모두 **참조 0건**
+- `jieonPractice/`는 사용자 확인 후 삭제
+- `git rm -r 2026_oneday_journal jieonPractice MyApplication excel Dockerfile`
+
+### 결과
+`git diff --cached --shortstat`: **128 files changed, 3146 deletions(-)**.
+빌드 영향 없음(compose·매뉴얼은 `BE/Dockerfile`만 참조, 코드가 쓰는 엑셀 템플릿은 `BE/src/main/resources/templates/excel/`).
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 세 안드로이드 디렉토리의 gitignore 대상 로컬 캐시(`.gradle/`, `app/build/`)는 추적 파일이 아니라 디스크에 남아 있다. 필요하면 로컬에서 직접 지운다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `2026_oneday_journal/`, `jieonPractice/`, `MyApplication/` | 삭제 |
+| `excel/` (루트), `Dockerfile` (루트) | 삭제 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 지시서 착수 — 기준선 측정 + 문서와 실제의 차이
 
 ### 배경
