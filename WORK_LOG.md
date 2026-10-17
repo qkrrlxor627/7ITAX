@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 지시서 착수 — 기준선 측정 + 문서와 실제의 차이
+
+### 배경
+`docs/PRE_CICD.md`(CI/CD 직전 완성 지시서, 0~9단계)를 브랜치 `chore/pre-cicd`에서 구현한다.
+지시서 규칙 0-3에 따라 각 단계의 "현재 상태 근거"를 실제 저장소와 먼저 대조했다.
+
+### 작업 내역
+- 루트에 있던 untracked `PRE_CICD.md`를 지시서가 전제하는 경로 `docs/PRE_CICD.md`로 이동해 커밋
+- JDK 17 설치: `winget install EclipseAdoptium.Temurin.17.JDK` → `C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`
+  (시스템 `JAVA_HOME`은 JDK 25 그대로 두고 명령마다 지정)
+- 기준선: `JAVA_HOME=<jdk17> ./gradlew test --no-daemon` → BUILD SUCCESSFUL 2m21s,
+  결과 XML 집계 **tests=308 failures=0 errors=0 skipped=1**
+  (Windows에서는 `BE/build.gradle:12-14`가 빌드 산출물을 `C:/tmp/tax7i-build`로 보낸다 — Windows 한정이라 Docker·CI 영향 없음)
+
+### 문서와 실제의 차이 (사용자와 합의한 처리)
+| 차이 | 처리 |
+|---|---|
+| `docs/IMPROVEMENT_PLAN.md` 없음(지시서가 여러 번 참조) | 미작성 문서로 간주. 참조는 그대로 두고 CLAUDE.md에 미작성 명시 |
+| `scripts/smoke_payment_ledger.py`가 저장소 전 이력에 없음(`git log --all -- '*smoke_payment_ledger*'` 0건). 7단계는 "수정"을 전제 | 새로 작성 |
+| `jq` 미설치 + Windows 경로(`C:\...`) → 9단계 bash 훅이 매칭 실패할 위험(지시서 866행 경고) | 훅을 Python으로 작성 |
+| JAVA_HOME이 JDK 25, JDK 17 없음 | 위와 같이 설치 |
+| `jieonPractice/` 삭제는 "사람 확인 필요" | 사용자 확인 → 삭제 |
+| 로컬 전용 `BE/src/main/resources/application-local.yaml`(시크릿 포함, gitignore 대상)이 Docker 빌드 컨텍스트로 들어감 | 3단계 `BE/.dockerignore`에 추가 |
+
+나머지 "현재 상태 근거"(SchedulingConfig·CardDataInitializer 무조건 실행, `ai.mock.enabled` 존재 `AiServiceClient.java:21`,
+worker용 yaml 없음, nginx `tax-backend`, health.py 항상 ok, prometheus `host.docker.internal:8080`,
+`merchant-test.html`의 죽은 URL, `.github/workflows`·`.claude/` 없음)는 문서와 일치했다.
+
+### 결과
+기준선 308개 통과 확인. 구현 착수.
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `docs/PRE_CICD.md` | 신규(루트 untracked 파일 이동) |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-08-04: 세션 마무리 — 재개 지점 기록
 
 ### 배경
