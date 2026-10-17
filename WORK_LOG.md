@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 3단계 — 운영용 BE 이미지
+
+### 배경
+기존 `BE/Dockerfile`은 root 실행, 헬스체크·JVM 메모리 옵션·타임존 없음, `.dockerignore` 없음(`docs/PRE_CICD.md` 3단계).
+추가로 이 PC에는 로컬 전용 `BE/src/main/resources/application-local.yaml`(AES·JWT 시크릿, gitignore 대상)이 있는데,
+`.dockerignore`가 없으면 `COPY src src`로 이미지 안 jar에 들어간다.
+
+### 작업 내역
+- `BE/Dockerfile`을 지시서 405-425행으로 교체(멀티스테이지, `useradd --uid 1001 app`, readiness HEALTHCHECK, `MaxRAMPercentage=75`, `Asia/Seoul`)
+- `BE/.dockerignore` 신규: 지시서 목록 + **`src/main/resources/application-local.yaml`**(지시서에 없던 항목)
+- 첫 빌드는 Docker Desktop 미기동으로 실패(`open //./pipe/dockerDesktopLinuxEngine`) → 기동 후 재빌드
+
+### 결과
+- `docker build -t tax7i-backend BE` exit 0. 빌드 컨텍스트 전송 5.17MB
+- `docker run --entrypoint sh tax7i-backend -c 'id -u'` → **1001**(비root), `/app`에는 `app.jar` 하나
+  (`bootJar`만 실행하므로 plain jar가 생기지 않아 지시서 438행의 `jar { enabled = false }`는 불필요)
+- 이미지의 jar를 꺼내 zip 목록 확인: yaml은 `BOOT-INF/classes/application.yaml`만, **`application-local.yaml` 없음**
+- `docker image inspect` Healthcheck: `curl -fs http://localhost:8080/actuator/health/readiness`, interval 10s, start-period 90s, retries 5
+- `healthy` 상태 확인은 compose로 DB·Redis와 함께 띄우는 4단계에서 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/Dockerfile` | 교체 |
+| `BE/.dockerignore` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 2단계 — 스케줄러·시드 데이터 스위치
 
 ### 배경

@@ -1,0 +1,7 @@
+build/
+.gradle/
+out/
+*.log
+.idea/
+# 로컬 bootRun 전용 시크릿 파일(BE/.gitignore:44) — 이미지에 들어가면 안 된다
+src/main/resources/application-local.yaml
