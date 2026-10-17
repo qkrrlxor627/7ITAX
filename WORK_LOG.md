@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 0단계 묶음 B — 참조 0건 BE 클래스 5개 제거
+
+### 배경
+`card/dto` DTO 4개와 미구현 보상 이벤트가 어디에서도 쓰이지 않는다(`docs/PRE_CICD.md` 0단계 묶음 B).
+
+### 작업 내역
+- 재확인: `command grep -rlw <클래스명> BE/src` → 5개 모두 자기 파일 1건만 매칭(외부 참조 0건)
+- `scripts/find_unused_java.py`(지시서 141-211행)도 같은 5개를 클래스 후보로 출력
+- `git rm` 대상: `CardBalanceResponse`, `CardDepositRequest`, `CardDepositResponse`, `CreateCardFromAccountRequest`, `payment/event/BookEntryCreationFailedEvent`
+
+### 결과
+- `./gradlew compileJava compileTestJava test --no-daemon -q` exit 0, 결과 XML 집계 **tests=308 failures=0 errors=0 skipped=1** (기준선 유지)
+- `git diff --cached --shortstat`: 5 files changed, 52 deletions(-)
+- 참고: `./gradlew test`는 `SampleExportGenerator` 테스트가 `docs/samples/*`를 다시 써서 작업 트리를 더럽힌다. 매번 `git restore docs/samples`로 되돌렸다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/java/com/ssafy/tax7i/card/dto/{CardBalanceResponse,CardDepositRequest,CardDepositResponse,CreateCardFromAccountRequest}.java` | 삭제 |
+| `BE/src/main/java/com/ssafy/tax7i/payment/event/BookEntryCreationFailedEvent.java` | 삭제 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 0단계 묶음 A — 서비스와 무관한 디렉토리·파일 제거
 
 ### 배경
