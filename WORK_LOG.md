@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 1단계 — 설정 환경변수 외부화 + `ssafy.oauth` 죽은 설정 제거
+
+### 배경
+같은 이미지를 로컬·성능측정·운영에 쓰려면 환경마다 달라지는 값이 환경변수로 열려 있어야 한다.
+`app.test-login.enabled: false`가 하드코딩돼 매뉴얼의 `TEST_LOGIN_ENABLED`가 바인딩되지 않았고,
+`ssafy.oauth` 블록은 Java 소비처가 0건이었다(`docs/PRE_CICD.md` 1단계).
+
+### 작업 내역
+- `BE/src/main/resources/application.yaml`을 지시서 239-331행으로 교체. 단, 지시서 버전에서 빠진 기존 Actuator 주석 2줄은 유지
+  - 신규 placeholder: `TEST_LOGIN_ENABLED`, `JPA_DDL_AUTO`, `DB_POOL_MAX`, `APP_SEED_ENABLED`, `APP_SCHEDULING_ENABLED`, `AI_MOCK_ENABLED`
+  - `server.shutdown: graceful` + `spring.lifecycle.timeout-per-shutdown-phase: 30s`, `server.forward-headers-strategy: native`
+  - `ssafy.oauth` 블록 삭제
+- `exec/포팅_매뉴얼.md` Backend 환경변수 표에 신규 5개 추가. 지시서는 `SSAFY_*` 3개 삭제도 요구하지만 표에 원래 없었다(변경 없음)
+- 지난 항목에서 "디스크에 남아 있다"고 적은 삭제 디렉토리 캐시는 이후 로컬에서 지웠다(`git status`가 untracked로 표시해 실수로 커밋될 위험). 단 VS Code Java 확장이 `2026_oneday_journal/**/nb-cache`를 다시 만들어 untracked로 남는다 — 커밋하지 않음
+
+### 결과
+- `command grep -rn "ssafy.oauth\|SSAFY_CLIENT\|ssafy:" BE/src` → **0건**
+- `./gradlew test` → **tests=308 failures=0 errors=0 skipped=1**
+- `TEST_LOGIN_ENABLED` 런타임 확인(true→200 / 없음→403)은 컨테이너 기동이 가능한 4·7단계에서 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/resources/application.yaml` | 환경변수 외부화, `ssafy.oauth` 삭제, graceful shutdown |
+| `exec/포팅_매뉴얼.md` | 환경변수 표 5행 추가 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 0단계 묶음 C — 로컬 원장 전환 후 남은 미사용 메서드 제거 + 탐지 스크립트
 
 ### 배경
