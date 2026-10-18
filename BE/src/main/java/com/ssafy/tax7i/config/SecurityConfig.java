@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Swagger UI·OpenAPI 문서 (운영은 SWAGGER_ENABLED=false로 엔드포인트 자체를 끈다)
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/tax-calendar/**").permitAll()
                         // 가맹점 QR 결제 실행(pay)은 결제 소유자(payer) 인증 필수.
                         // 아래 merchant-token permitAll보다 먼저 평가되어야 하며, 미인증 시 userId=null NPE/무인증 결제를 막는다.

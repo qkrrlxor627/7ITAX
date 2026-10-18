@@ -74,6 +74,15 @@ solapi:
   api-secret: ${SOLAPI_API_SECRET:}
   sender-phone: ${SOLAPI_SENDER_PHONE:}
 
+# Swagger UI(/swagger-ui/index.html)·OpenAPI 문서(/v3/api-docs). 운영은 SWAGGER_ENABLED=false
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    persist-authorization: true   # Authorize에 넣은 토큰을 새로고침해도 유지
+    tags-sorter: alpha
+
 # Actuator: 모니터링(Prometheus/Grafana)용 엔드포인트 노출
 # 운영 환경에서는 별도 management.server.port 분리 + 인증 적용 권장
 management:
