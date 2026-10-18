@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 5단계 — nginx SSE 프록시 설정
+
+### 배경
+`FE/nginx.conf`의 `/api/` 프록시는 nginx 기본값(응답 버퍼링 on, `proxy_read_timeout` 60s)이라 QR 결제 SSE
+(`/api/payments/qr/token/{token}/events`, `/api/payments/qr/merchant-token/{token}/events`, 토큰 TTL 300s `PaymentService.java:49`)가
+지연·조기 종료될 수 있다. upstream도 Jenkins 시절 컨테이너명 `tax-backend`였다(`docs/PRE_CICD.md` 5단계).
+
+### 작업 내역
+- `FE/nginx.conf`를 지시서 565-599행으로 교체: upstream `tax7i_backend { server backend:8080; }`,
+  SSE 경로(`~ ^/api/payments/qr/.+/events$`)만 `proxy_buffering off`, `proxy_cache off`, `proxy_read_timeout 360s`, HTTP/1.1 keep-alive
+
+### 결과
+- `docker run --rm --add-host backend:127.0.0.1 -v .../FE/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:alpine nginx -t`
+  → `syntax is ok` / `test is successful`
+- `--add-host` 없이 실행하면 upstream 호스트를 못 찾아 `test failed`(지시서 602행 예상과 동일)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 실제 SSE 지연·300초 유지 측정: FE 컨테이너가 compose에 없어(IMPROVEMENT_PLAN 13번) 문법 검증까지만 했다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `FE/nginx.conf` | 교체 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 4단계 — compose `worker` → `backend` + `.env.example`
 
 ### 배경
