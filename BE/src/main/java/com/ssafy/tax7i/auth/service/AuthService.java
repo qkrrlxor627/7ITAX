@@ -7,7 +7,10 @@ import com.ssafy.tax7i.auth.dto.ConsentRequest;
 import com.ssafy.tax7i.auth.dto.IdentityVerifyRequest;
 import com.ssafy.tax7i.auth.dto.IdentityVerifyResponse;
 import com.ssafy.tax7i.auth.dto.LoginResponse;
+import com.ssafy.tax7i.auth.dto.SimpleLoginRequest;
+import com.ssafy.tax7i.auth.dto.SimpleLoginResponse;
 import com.ssafy.tax7i.auth.repository.UserRepository;
+import com.ssafy.tax7i.card.entity.CardType;
 import com.ssafy.tax7i.auth.service.NiceIdentityMockService.VerificationResult;
 import com.ssafy.tax7i.banking.client.SsafyFinanceClient;
 import com.ssafy.tax7i.global.exception.BusinessException;
@@ -55,6 +58,7 @@ public class AuthService {
     private final SsafyFinanceClient ssafyFinanceClient;
     private final ConsentService consentService;
     private final SmsOtpService smsOtpService;
+    private final TestUserProvisioner testUserProvisioner;
 
     @Transactional
     public IdentityVerifyResponse verifyIdentity(IdentityVerifyRequest request) {
@@ -283,6 +287,28 @@ public class AuthService {
                 });
 
         return issueTokens(user.getId());
+    }
+
+    /**
+     * 간편 로그인: 전화번호로 사용자를 찾거나 만들고, 카드가 없으면 계좌·카드까지 발급한 뒤 바로 토큰을 준다.
+     * 본인인증·PIN·OTP를 건너뛰므로 컨트롤러에서 app.test-login.enabled로 막는다
+     */
+    @Transactional
+    public SimpleLoginResponse simpleLogin(SimpleLoginRequest request) {
+        String phone = request.phoneNumber();
+        String name = StringUtils.hasText(request.name())
+                ? request.name().trim()
+                : "사용자" + phone.substring(phone.length() - 4);
+        CardType cardType = request.cardType() != null ? request.cardType() : CardType.BUSINESS;
+
+        User user = testUserProvisioner.findOrCreate(phone, name, LocalDate.of(1990, 1, 1), "M");
+        checkUserStatus(user);
+        boolean newUser = testUserProvisioner.provisionCardIfAbsent(user, cardType);
+        user.updateLastLogin();
+
+        LoginResponse tokens = issueTokens(user.getId());
+        return new SimpleLoginResponse(tokens.accessToken(), tokens.refreshToken(),
+                user.getId(), user.getName(), user.getPhoneNumber(), newUser);
     }
 
     private LoginResponse issueTokens(Long userId) {

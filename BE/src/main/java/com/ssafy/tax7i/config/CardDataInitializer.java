@@ -2,18 +2,8 @@ package com.ssafy.tax7i.config;
 
 import com.ssafy.tax7i.auth.domain.User;
 import com.ssafy.tax7i.auth.repository.UserRepository;
-import com.ssafy.tax7i.banking.client.SsafyCreditCardClient;
-import com.ssafy.tax7i.banking.client.dto.SsafyCreateCreditCardResponse;
-import com.ssafy.tax7i.banking.client.dto.SsafyCreditCardProductListResponse;
-import com.ssafy.tax7i.banking.client.SsafyFinanceClient;
-import com.ssafy.tax7i.banking.client.dto.SsafyAccountListResponse;
-import com.ssafy.tax7i.banking.dto.AccountCreateRequest;
-import com.ssafy.tax7i.banking.dto.AccountResponse;
-import com.ssafy.tax7i.banking.entity.AccountType;
-import com.ssafy.tax7i.banking.service.AccountService;
-import com.ssafy.tax7i.card.entity.Card;
+import com.ssafy.tax7i.auth.service.TestUserProvisioner;
 import com.ssafy.tax7i.card.entity.CardType;
-import com.ssafy.tax7i.card.repository.CardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -30,13 +20,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CardDataInitializer implements CommandLineRunner {
 
-    private static final String DEFAULT_ACCOUNT_TYPE = "001-1-c7a14e921c7a44";
-
     private final UserRepository userRepository;
-    private final CardRepository cardRepository;
-    private final SsafyCreditCardClient ssafyCreditCardClient;
-    private final SsafyFinanceClient ssafyFinanceClient;
-    private final AccountService accountService;
+    private final TestUserProvisioner testUserProvisioner;
 
     @Override
     @Transactional
@@ -53,81 +38,11 @@ public class CardDataInitializer implements CommandLineRunner {
             // 두 번째 유저는 사업자 카드로 발급한다. 장부 자동 생성은 카드 유형이 BUSINESS일 때만 동작하므로
             // (PaymentService.publishPaymentCapturedEvent → BookEntryEventListener) 시드에 사업자 카드가 하나는 있어야
             // 결제→장부 흐름을 OTP 없이 확인할 수 있다(scripts/smoke_payment_ledger.py)
-            boolean business = i == 1;
-
-            List<Card> existingCards = cardRepository.findByUser_IdAndDeletedFalse(user.getId());
-            if (!existingCards.isEmpty()) {
-                log.info("[CardDataInitializer] 유저 {}에 이미 카드 {}개 존재, 건너뜁니다.", user.getId(), existingCards.size());
-                continue;
-            }
-
-            if (user.getSsafyUserKey() == null) {
-                try {
-                    String memberId = "tax7i-user-" + user.getId() + "@tax7i.dev";
-                    String userKey = ssafyFinanceClient.getOrRegisterMember(memberId);
-                    user.assignSsafyUserKey(userKey);
-                    userRepository.save(user);
-                    log.info("[CardDataInitializer] 유저 {} ssafyUserKey 등록 완료: {}", user.getId(), userKey);
-                } catch (Exception e) {
-                    log.error("[CardDataInitializer] 유저 {} SSAFY 멤버 등록 실패, 건너뜁니다: {}", user.getId(), e.getMessage());
-                    continue;
-                }
-            }
-
-            String userKey = user.getSsafyUserKey();
-
+            CardType cardType = i == 1 ? CardType.BUSINESS : CardType.PERSONAL;
             try {
-                // 카드 상품 목록 조회
-                SsafyCreditCardProductListResponse products = ssafyCreditCardClient.getCreditCardProducts(userKey);
-                if (products.rec() == null || products.rec().isEmpty()) {
-                    log.warn("[CardDataInitializer] 카드 상품이 없습니다. 카드 생성을 건너뜁니다.");
-                    continue;
+                if (!testUserProvisioner.provisionCardIfAbsent(user, cardType)) {
+                    log.info("[CardDataInitializer] 유저 {}에 이미 카드가 있어 건너뜁니다.", user.getId());
                 }
-
-                // 사용자의 수시입출금 계좌 조회 (없으면 자동 생성)
-                SsafyAccountListResponse accountList = ssafyFinanceClient.getAccountList(userKey);
-                String withdrawalAccountNo;
-                if (accountList.rec() == null || accountList.rec().isEmpty()) {
-                    log.info("[CardDataInitializer] 유저 {}의 계좌가 없어 수시입출금 계좌를 생성합니다.", user.getId());
-                    // 클라이언트는 계좌번호만 발급하고 영속화는 AccountService가 한다(SsafyFinanceClient.createAccount 주석).
-                    // 클라이언트를 직접 부르면 accounts 행이 없어 이 카드의 결제 확정이 ACCOUNT_NOT_FOUND로 실패한다
-                    AccountResponse account = accountService.createAccount(user.getId(),
-                            new AccountCreateRequest(business ? AccountType.BUSINESS : AccountType.PERSONAL,
-                                    DEFAULT_ACCOUNT_TYPE, null));
-                    withdrawalAccountNo = account.accountNumber();
-                    log.info("[CardDataInitializer] 유저 {} 계좌 생성 완료: {}", user.getId(), withdrawalAccountNo);
-                } else {
-                    withdrawalAccountNo = accountList.rec().get(0).accountNo();
-                }
-
-                // 첫 번째 카드 상품으로 카드 발급
-                SsafyCreditCardProductListResponse.CreditCardProductRec product = products.rec().get(0);
-
-                SsafyCreateCreditCardResponse response = ssafyCreditCardClient.createCreditCard(
-                        userKey, product.cardUniqueNo(), withdrawalAccountNo, "4");
-
-                SsafyCreateCreditCardResponse.CreditCardRec rec = response.rec();
-                String cardNo = rec.cardNo();
-                String last4 = cardNo.substring(cardNo.length() - 4);
-
-                Card card = Card.builder()
-                        .user(user)
-                        .cardName(product.cardName() != null ? product.cardName() : (business ? "사업자카드" : "개인카드"))
-                        .cardType(business ? CardType.BUSINESS : CardType.PERSONAL)
-                        .last4Digits(last4)
-                        .cardNo(cardNo)
-                        .cvc(rec.cvc())
-                        .cardUniqueNo(rec.cardUniqueNo())
-                        .ssafyAccountNo(withdrawalAccountNo)
-                        .withdrawalAccountNo(rec.withdrawalAccountNo())
-                        .withdrawalDate(rec.withdrawalDate())
-                        .cardExpiryDate(rec.cardExpiryDate())
-                        .build();
-                card.markDefault();
-                cardRepository.save(card);
-
-                log.info("[CardDataInitializer] 유저 {} 신용카드 생성 완료: {} - 카드번호 끝 4자리: {}",
-                        user.getId(), card.getCardName(), last4);
             } catch (Exception e) {
                 log.error("[CardDataInitializer] 유저 {} 카드 생성 실패: {}", user.getId(), e.getMessage());
             }
@@ -135,33 +50,9 @@ public class CardDataInitializer implements CommandLineRunner {
     }
 
     private List<User> createTestUsers() {
-        record TestUserSeed(String name, String birthDate, String gender, String phoneNumber) {}
-
-        List<TestUserSeed> seeds = List.of(
-                new TestUserSeed("김싸피", "1995-03-15", "M", "01011111111"),
-                new TestUserSeed("이싸피", "1998-07-22", "F", "01022222222")
+        return List.of(
+                testUserProvisioner.findOrCreate("01011111111", "김싸피", LocalDate.parse("1995-03-15"), "M"),
+                testUserProvisioner.findOrCreate("01022222222", "이싸피", LocalDate.parse("1998-07-22"), "F")
         );
-
-        List<User> created = new java.util.ArrayList<>();
-        for (TestUserSeed seed : seeds) {
-            String ci = "test-ci-" + seed.phoneNumber();
-            if (userRepository.findByCi(ci).isPresent()) {
-                continue;
-            }
-            User user = userRepository.save(
-                    User.builder()
-                            .ci(ci)
-                            .di("test-di-" + seed.phoneNumber())
-                            .name(seed.name())
-                            .birthDate(LocalDate.parse(seed.birthDate()))
-                            .gender(seed.gender())
-                            .phoneNumber(seed.phoneNumber())
-                            .phoneLast4(seed.phoneNumber().substring(seed.phoneNumber().length() - 4))
-                            .build()
-            );
-            log.info("[CardDataInitializer] 더미 유저 생성: {} (id={})", seed.name(), user.getId());
-            created.add(user);
-        }
-        return created;
     }
 }
