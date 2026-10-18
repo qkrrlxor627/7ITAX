@@ -38,6 +38,27 @@ git 이력은 `Initial commit` + 본인 커밋뿐이라 **팀원별 기여는 �
 
 ---
 
+## 2026-10-18: README에 성능 개선 Before / After 정리
+
+### 배경
+바로 아래 항목의 load 1차·2차 측정으로 확인한 개선(커넥션 풀 교착 해소)을 저장소 첫 화면에서 볼 수 있게 해 달라는 요청.
+
+### 작업 내역
+- `README.md`에 "성능 개선 (Before / After)" 절 추가: 측정 방법(k6 load, VU 50, 행동 비율, 로컬 조건), 발견한 문제(p95 통과·p99 30s·Hikari 10/10+대기 52·기록 유실 28),
+  원인과 해결 3가지, 결과 표(처리량 32.7→57.2 req/s, 실패 0.62%→0, p99 29.5s→0.64s, 조회 p95 280ms→14.5ms 등), 배운 점·로컬 결과 해석 주의
+- 문서 목록에 `docs/PERF_TEST.md` 링크, 로컬 실행 안내에 간편 로그인·Swagger 주소 2줄
+
+### 결과
+- 수치는 모두 아래 항목과 `docs/PERF_TEST.md` 7절의 측정값을 그대로 옮겼다(새 측정 없음)
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `README.md` | 성능 개선 절, 문서 링크, 실행 안내 2줄 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: 성능 테스트 시나리오 문서 + k6 스크립트 + 로컬 측정
 
 ### 배경
@@ -71,12 +92,15 @@ git 이력은 `Initial commit` + 본인 커밋뿐이라 **팀원별 기여는 �
 - **수정**: 카드 거래 기록을 `CardTransactionEvent` → `@Async @TransactionalEventListener(AFTER_COMMIT, fallbackExecution=true)`로 커밋 후 저장,
   `CacheConfig` ObjectMapper `FAIL_ON_UNKNOWN_PROPERTIES` 끔, 실행기 core 4·max 8·queue 500(`ASYNC_CORE_SIZE`·`ASYNC_MAX_SIZE`·`ASYNC_QUEUE_CAPACITY`, 이름 `async-`)
   - 테스트: `CardTransactionSaveServiceTest` 2개 신규, `PaymentServiceTest` 4곳을 이벤트 발행 검증으로 변경 → `./gradlew test` **326 통과 / 0 실패 / skipped 1**
-- 수정 후 load 재측정은 다음 항목에 기록한다(같은 시나리오·같은 DB, 단 1차 결제분만큼 데이터가 늘어난 상태)
+- **load 2차(수정 후, 같은 조건)**: 실패 **0/22,494**, 57.2 req/s(+75%), read p95 14.5ms·pay p95 82ms·export p95 93ms, p99 0.64s·최대 3.3s, 힙 최대 0.95GB, `Connection is not available`·카드 기록 실패·캐시 실패 로그 **0건**
+  - 장부 생성 지연(DB `book_entries.created_at − payments.captured_at` 분 단위): 1차 18:22~24 최대 60초 → 2차 안정 구간 p95 9~106ms, 부하 상승 1분(18:36) p95 2.2s·최대 3.9s
+  - k6 `ledger_missing` 104는 오탐: 장부 목록 기본 정렬이 `entryDate`뿐(`BookEntryController` `@PageableDefault(sort="entryDate")`)이라 같은 날 장부 순서가 없어 최신 장부가 첫 50건에 안 들 수 있다. 사용자당 장부가 50건을 넘은 2차에서 드러남 → 스크립트를 `sort=id,desc`로 수정. 같은 이유로 앱에서도 같은 날 장부 순서가 일정하지 않다(제외 항목)
 - `sample_metrics.py`의 `tomcat_busy`는 비어 있다(`server.tomcat.mbeanregistry.enabled` 미설정으로 지표 미노출)
 
 ### 확인했으나 이번 범위에서 제외한 항목
 - 배포 환경 측정: 아직 CD·성능측정 환경이 없다(RELEASE URL도 죽은 주소). 문서 5-2와 `run.sh <URL>`로 준비만 했다
 - 톰캣 스레드 지표 노출, AI 챗봇 부하(외부 LLM 의존·비용) 측정
+- 장부 목록 같은 날짜 내 정렬(보조 정렬 키 `id` 추가) — 앱 표시 순서 문제. stress·spike·soak·contention은 다음 회차
 
 ### 변경된 파일 목록
 | 파일 | 변경 |
