@@ -3,11 +3,15 @@ spring:
     name: tax7i
   config:
     import: optional:classpath:application-local.yaml
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tax7i}
     username: ${DB_USERNAME:ssafy}
     password: ${DB_PASSWORD:ssafy}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}   # Hikari 기본값과 동일. 성능 측정 시 이 값만 바꿔 비교한다
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -15,7 +19,7 @@ spring:
       password: ${REDIS_PASSWORD:}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:update}       # Flyway 도입(IMPROVEMENT_PLAN 5번) 후 validate로 전환
     properties:
       hibernate:
         format_sql: true
@@ -28,6 +32,10 @@ spring:
         default_batch_fetch_size: 100
     open-in-view: false
 
+server:
+  shutdown: graceful                         # 종료 신호 후 처리 중 요청을 마치고 내려간다
+  forward-headers-strategy: native           # ALB/nginx 뒤에서 X-Forwarded-* 반영
+
 encryption:
   aes-key: ${AES_ENCRYPTION_KEY}
 
@@ -38,17 +46,11 @@ jwt:
 
 app:
   test-login:
-    enabled: false
-
-# SSAFY 교육 과정 종료로 서버 접근 불가 — 키 미설정 시 빈 값으로 기동된다.
-ssafy:
-  oauth:
-    authorization-uri: https://project.ssafy.com/oauth/sso-check
-    token-uri: https://project.ssafy.com/ssafy/oauth2/token
-    user-info-uri: https://project.ssafy.com/ssafy/resources/userInfo
-    client-id: ${SSAFY_CLIENT_ID:}
-    client-secret: ${SSAFY_CLIENT_SECRET:}
-    redirect-uri: ${SSAFY_REDIRECT_URI:}
+    enabled: ${TEST_LOGIN_ENABLED:false}     # 운영 false, 로컬·성능측정 true
+  seed:
+    enabled: ${APP_SEED_ENABLED:true}        # 기동 시 더미 유저·카드 생성(CardDataInitializer)
+  scheduling:
+    enabled: ${APP_SCHEDULING_ENABLED:true}  # 인스턴스 2대 이상이면 1대만 true
 
 tax:
   office-code: "0305"
@@ -57,6 +59,8 @@ ai:
   base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}
   connect-timeout: 3
   read-timeout: 10
+  mock:
+    enabled: ${AI_MOCK_ENABLED:false}        # true면 AI 서버 없이 MockAiServiceClient 사용(BE 단독 성능 측정용)
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}

@@ -3,7 +3,8 @@ services:
     image: postgres:16
     container_name: tax7i-postgres
     ports:
-      - "5432:5432"
+      # 호스트에 PostgreSQL이 이미 5432를 쓰고 있으면 .env에 POSTGRES_HOST_PORT=5433 등으로 바꾼다(컨테이너 간 통신은 5432 그대로)
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     environment:
       POSTGRES_DB: tax7i
       POSTGRES_USER: ssafy
@@ -58,13 +59,17 @@ services:
     volumes:
       - ai-chroma-data:/app/data/chroma
 
-  worker:
+  backend:
     build:
       context: ./BE
       dockerfile: Dockerfile
-    container_name: tax7i-worker
+    container_name: tax7i-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      SPRING_PROFILES_ACTIVE: worker
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: tax7i
@@ -74,17 +79,14 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-ssafy}
       AI_SERVICE_BASE_URL: http://ai:8000
-      # AES_ENCRYPTION_KEY(Base64 32바이트)·JWT_SECRET(32바이트 이상)은 시크릿이라 기본값 없이 필수.
-      # `docker compose up` 실행 시 환경변수로 전달해야 하며 백엔드(bootRun)와 동일 값을 쓴다.
-      # (과거 JWT_SECRET 기본값 'default-secret'은 14바이트 → jjwt HS256 최소 길이 미달로 worker 크래시 루프였음)
+      # 기본값 없음: 비어 있으면 BE가 기동 시 실패한다(약한 기본값 배포 방지, 기존 worker와 동일)
+      # `:?` 필수 표기를 쓰지 않는 이유: compose 파일 전체에 적용돼 postgres·redis만 띄울 때도 .env를 요구하게 된다
       AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY}
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      ai:
         condition: service_healthy
     restart: on-failure
 

@@ -5,6 +5,452 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 9단계 — 하네스(훅·검증 에이전트) + CLAUDE.md 갱신
+
+### 배경
+CLAUDE.md 규칙(WORK_LOG 필수, `command grep`, AI 로직 불변)이 문서에만 있어 지켜지는지 사람이 확인해야 했다(`docs/PRE_CICD.md` 9단계).
+
+### 작업 내역
+- **훅을 bash+jq 대신 Python으로 작성**(사용자 결정). 이 PC에 `jq`가 없고, 지시서 866행 경고대로 bash 접두어 비교는 `C:\...` 경로를 놓친다.
+  `.claude/hooks/{_common,protect_paths,guard_bash,compile_check,check_done}.py` — 지시서 910-999행 bash 로직을 이식
+  - 경로: `os.path.relpath`로 프로젝트 기준 상대경로(대소문자 무시 비교, 원래 대소문자 유지) 후 `\`→`/`
+  - 입출력: stdin을 UTF-8로 디코드, 차단 메시지를 UTF-8로 출력(Windows 기본 cp949로 읽으면 한글 경로에서 JSON 파싱이 실패해 **훅이 그냥 통과**한다)
+  - gradle 호출 훅은 `JAVA17_HOME`이 있으면 `JAVA_HOME`으로 주입, `gradlew(.bat)`는 절대경로로 실행
+  - `check_done`은 BE 테스트가 다시 쓴 `docs/samples/*`만 되돌린다(원래 수정 중이던 샘플은 유지)
+  - 지시서 대비 확장: `.env` 차단을 루트뿐 아니라 하위 디렉토리(`ai/.env`)까지
+- `.claude/settings.json`(공용, `python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/*.py"`), `.claude/agents/plan-verifier.md`
+- `.claude/settings.local.json`(개인, 미추적): `env.JAVA17_HOME` = 이 PC의 Temurin 17 경로
+- `.gitignore`: `# personal` 아래 `.claude` 전체 무시 → `.claude/*` 무시 + `settings.json`·`hooks/`·`agents/`만 추적, `__pycache__` 무시
+- `CLAUDE.md`: 진행 상황, "작업 지시서" 섹션(IMPROVEMENT_PLAN 미작성 명시), 빌드·실행(verify_stack, 기준선 310, application-local 자동 로드, AES 키 교체 위험, 시드·장부 기준, `POSTGRES_HOST_PORT`), AI-6에 `/ready`, 해결된 `ssafy.oauth` 항목 삭제, 문서 지도에 `docs/PRE_CICD.md`
+
+### 결과
+- 샘플 입력 테스트(scratchpad `test_hooks.py`, Python 3.9·3.11 각각) → **26/26 통과**
+  (AI 서비스 백슬래시·대소문자 혼용·한글 파일명·상대경로 차단, health.py·`.env.example`·프로젝트 밖 통과, main/HEAD:main/force push 차단, 브랜치·maintenance 푸시 통과, 맨 grep/find·파이프 grep 차단, `command grep` 통과, `down -v` 차단·CI=true 허용)
+- **세션 실동작 확인**: 맨 `grep` 실행 → `PreToolUse:Bash hook error ... 차단: 이 환경에서 맨 grep/find는...`,
+  `ai/app/services/__init__.py` 쓰기 → `PreToolUse:Write hook error ... 차단: ... AI 로직이다` (`git status ai/` 변경 없음)
+- `compile_check`: 실제 BE 자바 경로 → gradle 컴파일 15초 exit 0, `JAVA17_HOME=C:\nope` → exit 2 + `JAVA_HOME is set to an invalid directory`
+  - 처음 구현은 두 가지 이유로 gradle을 실행하지 못하고 그냥 통과했다: `normcase`가 상대경로를 소문자로 바꿔 `BE/src/` 비교 실패, `cmd /c gradlew.bat`이 cwd에서 못 찾음 → 둘 다 수정
+- `check_done`: 코드 경로 변경 + WORK_LOG 미변경 → exit 2 + "아직 끝내지 말 것: ... WORK_LOG.md에 항목이 없다", 변경 없음 → exit 0,
+  BE 경로 변경(`BE/_hooktest.txt`) + WORK_LOG 변경 → gradle test 실행 후 exit 0(7초). 소스 변경이 없어 test 태스크가 up-to-date였으므로
+  **`docs/samples` 되돌리기 분기는 이번에 실제로 타지 않았다**(다음 BE 소스 수정 때 확인 필요)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- `find_unused_java.py`를 Stop 훅에 연결할지는 오탐 빈도를 보고 결정(지시서 0단계 재발 방지 칸)
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `.claude/settings.json` | 신규 |
+| `.claude/hooks/*.py` (5개) | 신규 |
+| `.claude/agents/plan-verifier.md` | 신규 |
+| `.gitignore` | `.claude` 규칙 세분화 |
+| `CLAUDE.md` | 갱신 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 8단계 — GitHub Actions CI 워크플로
+
+### 배경
+`.github/workflows/`가 없었고(`.github/`에는 `modernize/java-upgrade`만), `Jenkinsfile`에는 테스트 스테이지가 없어 테스트가 깨져도 머지가 막히지 않았다(`docs/PRE_CICD.md` 8단계).
+
+### 작업 내역
+- `.github/workflows/ci.yml` 신규(지시서 778-843행 그대로): `pull_request`·`push`(main) 트리거, 잡 3개
+  - `be-test`: JDK 17 temurin + `gradle/actions/setup-gradle@v4` + Redis 서비스 → `./gradlew test`, 실패 시 리포트 업로드
+  - `ai-test`: Python 3.11 + `requirements.txt` + `pytest pytest-asyncio httpx` → `pytest -q tests/test_health.py`
+  - `stack-smoke`(`needs: be-test`): `.env.example` 복사 + `openssl rand`로 CI 전용 키 생성 → `./scripts/verify_stack.sh` → `docker compose down -v`
+- CI 시크릿 등록 불필요: BE 테스트는 `application-test.yaml`의 테스트 키를 쓰고, `stack-smoke`는 실행마다 임시 키를 만든다
+
+### 결과
+- 로컬에서는 YAML 파싱만 확인: `yaml.safe_load` → jobs `['be-test', 'ai-test', 'stack-smoke']`
+- 실제 실행·소요 시간은 PR에서 확인한다(`[측정: ___]`은 PR 결과로 채운다)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- `Jenkinsfile` 삭제(CD 문서에서 대체 확정 후), `main` 브랜치 보호 규칙의 필수 체크 지정(GitHub 웹 설정, 사용자 작업)
+- `ai/requirements.txt`의 `--extra-index-url .../whl/cpu`가 있어도 pip가 PyPI의 CUDA torch를 고를 수 있다. `ai-test` 소요 시간을 보고 판단
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `.github/workflows/ci.yml` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 7단계 — 한 번에 검증하는 스크립트
+
+### 배경
+"컨테이너로 띄워 핵심 흐름이 도는지"를 확인하는 단일 명령이 없었다(`docs/PRE_CICD.md` 7단계).
+지시서는 `scripts/smoke_payment_ledger.py`를 "수정"하라고 했지만 저장소 전 이력에 없는 파일이라 새로 작성했다(사용자 결정).
+
+### 작업 내역
+- `scripts/verify_stack.sh` 신규(지시서 708-742행 그대로): `.env` 확인 → `docker compose up -d --build postgres redis backend` → healthy 대기(최대 5분) → 스모크
+- `scripts/smoke_payment_ledger.py` 신규(표준 라이브러리만):
+  `POST /api/auth/test-login?email=01022222222` → `GET /api/cards`에서 BUSINESS 카드 → `GET /api/cards/merchants` →
+  `POST /api/payments/authorize`(BUSINESS, OFFLINE) → `POST /api/payments/{id}/capture`(CAPTURED 확인) →
+  `GET /api/book-entries?size=50`에서 같은 `paymentId` 장부를 최대 30초 폴링(장부는 `@Async` AFTER_COMMIT 리스너가 만든다).
+  실패하면 단계명·HTTP 코드·응답 본문을 출력하고 exit 1. docstring에 `TEST_LOGIN_ENABLED=true`, 빈 DB 시드 전제 명시
+- `FE/docs/merchant-test.html:50` 기본 서버 `https://j14c203.p.ssafy.io/api` → `http://localhost:8080/api`
+- 루트 `.gitattributes` 신규: `*.sh text eol=lf`(CRLF로 체크아웃되면 리눅스 CI에서 `bash\r`로 실패). `verify_stack.sh`는 `git update-index --chmod=+x`로 100755
+
+### 결과
+- 첫 실행은 스모크 실패 → 기존 버그 2건 발견·수정(바로 아래 "시드 카드 결제 확정" 항목)
+- 수정 후 빈 DB에서 `./scripts/verify_stack.sh` → **exit 0, 190초**(이미지 재빌드 포함), `OK: backend healthy + 결제→장부 스모크 통과`
+- 스모크 단독 재실행: `OK: paymentId=2 amount=10691 → bookEntryId=2 category=접대비`
+- 실패 경로: `JWT_SECRET= ./scripts/verify_stack.sh` → **exit 1, 327초**, `FAIL: backend 상태=unhealthy (healthy가 아님)` + backend 로그 200줄
+  (원인 `io.jsonwebtoken.security.WeakKeyException: The specified key byte array is 0 bits`가 로그에 포함). 셸 변수가 compose 치환에서 `.env`보다 우선해 `.env`를 건드리지 않고 재현
+- `git ls-files --eol scripts/verify_stack.sh` → `i/lf w/lf attr/text eol=lf`
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 실패 시 healthy 대기 루프가 `unhealthy`에서 멈추지 않고 5분을 다 기다린다(`restart: on-failure`라 상태가 `exited`로 가지 않음). 지시서 스크립트 그대로 두고 기록만 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `scripts/verify_stack.sh` | 신규(실행 권한) |
+| `scripts/smoke_payment_ledger.py` | 신규 |
+| `FE/docs/merchant-test.html` | 기본 서버 URL 변경 |
+| `.gitattributes` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: 시드 카드 결제 확정이 ACCOUNT_NOT_FOUND로 실패하던 버그 수정 + 사업자 카드 시드
+
+### 배경
+7단계 스모크(`scripts/smoke_payment_ledger.py`)를 처음 돌렸을 때 시드 유저 카드로 결제 확정이
+`POST /api/payments/1/capture → HTTP 404 {"errorCode":"ACCOUNT_NOT_FOUND"}`로 실패했다. 지시서 범위 밖의 기존 버그지만 완료 정의(스모크 통과)를 막는다.
+
+### 원인
+1. **출금계좌 미저장**: `CardDataInitializer`가 계좌를 `SsafyFinanceClient.createAccount`로 직접 만들었다. 로컬 원장 전환 후 이 메서드는
+   계좌번호만 발급하고 저장하지 않는다(`SsafyFinanceClient.java:47` 주석 "계좌 영속화는 AccountService가 담당한다").
+   그래서 `accounts` 0행인 채로 카드가 그 계좌번호를 출금계좌로 가졌고, 결제 확정 시
+   `SsafyCreditCardClient.debitWithdrawalAccount`(`findByAccountNoKeyForUpdate`)가 계좌를 못 찾았다.
+   → 시드 유저는 **어떤 결제도 확정할 수 없는 상태**였다
+2. **장부 대상 카드 없음**(1을 고친 뒤 드러남): 확정은 성공했지만 30초 안에 장부가 생기지 않았다. `PaymentService.java:529`가
+   `PaymentCapturedEvent.purpose`에 결제의 purpose가 아니라 **카드 유형**(`card.getCardType().name()`)을 넣고,
+   `BookEntryEventListener`는 BUSINESS만 장부를 만든다. 시드 카드 2장은 모두 PERSONAL이고, 사업자 카드 발급 API(`POST /api/cards`)는 OTP가 필요하다.
+   이벤트·리스너 주석이 모두 "사업자 카드 결제"라 의도된 설계로 보고 **도메인 로직은 바꾸지 않았다**(사용자 결정)
+
+### 작업 내역
+- `CardDataInitializer`: 계좌 생성을 `AccountService.createAccount(userId, new AccountCreateRequest(...))`로 변경 → `accounts`에 저장(데모 잔액 5,000,000)
+- `CardDataInitializer`: 두 번째 시드 유저(이싸피, `01022222222`)는 BUSINESS 카드·BUSINESS 계좌로 발급(사용자 결정)
+- `Tax7iApplicationTests`에 회귀 테스트 2개: 시드 카드의 출금계좌가 `accounts`에 있다 / BUSINESS 시드 카드가 있다
+
+### 결과
+- 회귀 테스트를 수정 전 코드로 돌리면 `2 tests completed, 1 failed`, 수정 후 통과 → 버그를 잡는 테스트임을 확인
+- `./gradlew test` → **tests=310 failures=0 errors=0 skipped=1** (308 + 신규 2)
+- 빈 DB 기동 후 `cards`: `1|PERSONAL|test-ci-01011111111`, `2|BUSINESS|test-ci-01022222222`
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 장부 생성 기준을 "카드 유형"이 아니라 "결제 purpose"로 바꿀지(결제마다 사용자가 고르는 purpose가 장부 생성에 쓰이지 않는다)는 도메인 결정이 필요해 남겨 둔다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/java/com/ssafy/tax7i/config/CardDataInitializer.java` | 계좌 저장 경로 수정, 2번 유저 사업자 카드 |
+| `BE/src/test/java/com/ssafy/tax7i/Tax7iApplicationTests.java` | 회귀 테스트 2개 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 6단계 — AI readiness 엔드포인트
+
+### 배경
+`ai/app/routers/health.py`는 항상 `{"status": "ok"}`라, `ANTHROPIC_API_KEY`가 없어도 health는 green인데 chat만 실패한다(CLAUDE.md AI-6).
+liveness와 readiness를 구분하지 않는다(`docs/PRE_CICD.md` 6단계).
+
+### 작업 내역
+- `ai/app/routers/health.py`를 지시서 626-645행으로 교체: `/api/v1/health/`(liveness, 기존과 같은 응답) + `/api/v1/health/ready`(키 없으면 503)
+- `ai/tests/test_health.py` 신규(지시서 651-681행): health 라우터만 붙인 앱으로 3케이스
+- AI 로직(`ai/app/services/**` 등)은 수정하지 않음
+
+### 결과
+- 이 PC에는 AI venv가 없다(`ai/`에 venv 없음, 시스템 python에 fastapi 없음). `requirements.txt` 전체(torch 등)는 무거워
+  scratchpad에 최소 venv(`fastapi httpx pydantic-settings pytest pytest-asyncio`)를 만들어 **`--noconftest`** 로 실행:
+  `pytest -q --noconftest tests/test_health.py` → **3 passed in 1.23s**
+  (`tests/conftest.py`가 `app.main`·서비스를 임포트해 전체 의존성이 필요하다 — 지시서 684행. 테스트 자체는 conftest 픽스처를 쓰지 않는다)
+- conftest를 포함한 실행은 8단계 CI `ai-test` 잡(전체 requirements 설치)에서 확인한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `ai/app/routers/health.py` | `/ready` 추가 |
+| `ai/tests/test_health.py` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 5단계 — nginx SSE 프록시 설정
+
+### 배경
+`FE/nginx.conf`의 `/api/` 프록시는 nginx 기본값(응답 버퍼링 on, `proxy_read_timeout` 60s)이라 QR 결제 SSE
+(`/api/payments/qr/token/{token}/events`, `/api/payments/qr/merchant-token/{token}/events`, 토큰 TTL 300s `PaymentService.java:49`)가
+지연·조기 종료될 수 있다. upstream도 Jenkins 시절 컨테이너명 `tax-backend`였다(`docs/PRE_CICD.md` 5단계).
+
+### 작업 내역
+- `FE/nginx.conf`를 지시서 565-599행으로 교체: upstream `tax7i_backend { server backend:8080; }`,
+  SSE 경로(`~ ^/api/payments/qr/.+/events$`)만 `proxy_buffering off`, `proxy_cache off`, `proxy_read_timeout 360s`, HTTP/1.1 keep-alive
+
+### 결과
+- `docker run --rm --add-host backend:127.0.0.1 -v .../FE/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:alpine nginx -t`
+  → `syntax is ok` / `test is successful`
+- `--add-host` 없이 실행하면 upstream 호스트를 못 찾아 `test failed`(지시서 602행 예상과 동일)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 실제 SSE 지연·300초 유지 측정: FE 컨테이너가 compose에 없어(IMPROVEMENT_PLAN 13번) 문법 검증까지만 했다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `FE/nginx.conf` | 교체 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 4단계 — compose `worker` → `backend` + `.env.example`
+
+### 배경
+compose의 `worker`는 `SPRING_PROFILES_ACTIVE: worker`인데 `application-worker.yaml`이 없어(`command grep -rn worker BE/src/main/resources` → 로컬 전용 파일 주석 1건뿐) 이름만 다른 backend였고,
+AI 최초 기동(`start_period: 600s`)을 기다렸다. 필요한 환경변수 목록도 compose 주석·매뉴얼에 흩어져 있었다(`docs/PRE_CICD.md` 4단계).
+
+### 작업 내역
+- `docker-compose.yml`: `worker`를 지시서 463-493행 `backend`로 교체(8080 노출, `env_file: .env`(required:false), AI 의존 제거)
+- `docker-compose.yml` **추가 변경**: postgres 호스트 포트를 `${POSTGRES_HOST_PORT:-5432}`로 열었다.
+  이 PC에 Windows 서비스 `postgresql-x64-17`이 5432를 점유해 `Bind for 0.0.0.0:5432 failed: port is already allocated`로 기동 실패.
+  기본값은 그대로 5432라 CI·다른 PC 동작은 같고, 컨테이너 간 통신(backend→postgres:5432)과 무관하다
+- `.env.example` 신규(지시서 501-526행 + `POSTGRES_HOST_PORT=5432` 안내)
+- `monitoring/prometheus/prometheus.yml`: `tax7i-backend` 타깃 `backend:8080`, bootRun용은 주석, `tax7i-worker` 주석 블록 삭제
+- 로컬 `.env`(gitignore 대상)에 스위치 키와 `POSTGRES_HOST_PORT=5433` 추가
+- **로컬 postgres 볼륨 초기화(사용자 승인)**: 기존 `7itax_postgres-data`(2026-08-03 생성, 유저 4·카드 2·결제 0·장부 0)는 이전 AES 키로 암호화돼 있어
+  새 키로 기동하면 `AesEncryptor.convertToEntityAttribute` → `복호화에 실패했습니다`로 크래시 루프(RestartCount 16). `docker volume rm 7itax_postgres-data`
+
+### 결과
+- `docker compose config -q` → 출력 없음(exit 0)
+- `MSYS_NO_PATHCONV=1 docker run ... promtool check config` → `SUCCESS: 5 rules found`
+- 빈 DB + 임시 override(`APP_SEED_ENABLED=false`, `TEST_LOGIN_ENABLED=false`)로 `up -d postgres redis backend`:
+  **33초 만에 healthy**, RestartCount 0, `users` 0건, `[CardDataInitializer]` 로그 0줄(2단계 검증), `POST /api/auth/test-login` → **403**(1단계 검증), readiness `{"status":"UP"}`
+- 기본 `.env`로 재생성: healthy, `users=2 cards=2`, `[CardDataInitializer] 유저가 없어 더미 유저 2명을 생성합니다.`, test-login → **200**
+- Prometheus `/api/v1/targets`: `('tax7i-backend', 'http://backend:8080/actuator/prometheus', 'up')`
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `docker-compose.yml` | `worker`→`backend`, postgres 호스트 포트 변수화 |
+| `.env.example` | 신규 |
+| `monitoring/prometheus/prometheus.yml` | 스크랩 타깃 변경 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 3단계 — 운영용 BE 이미지
+
+### 배경
+기존 `BE/Dockerfile`은 root 실행, 헬스체크·JVM 메모리 옵션·타임존 없음, `.dockerignore` 없음(`docs/PRE_CICD.md` 3단계).
+추가로 이 PC에는 로컬 전용 `BE/src/main/resources/application-local.yaml`(AES·JWT 시크릿, gitignore 대상)이 있는데,
+`.dockerignore`가 없으면 `COPY src src`로 이미지 안 jar에 들어간다.
+
+### 작업 내역
+- `BE/Dockerfile`을 지시서 405-425행으로 교체(멀티스테이지, `useradd --uid 1001 app`, readiness HEALTHCHECK, `MaxRAMPercentage=75`, `Asia/Seoul`)
+- `BE/.dockerignore` 신규: 지시서 목록 + **`src/main/resources/application-local.yaml`**(지시서에 없던 항목)
+- 첫 빌드는 Docker Desktop 미기동으로 실패(`open //./pipe/dockerDesktopLinuxEngine`) → 기동 후 재빌드
+
+### 결과
+- `docker build -t tax7i-backend BE` exit 0. 빌드 컨텍스트 전송 5.17MB
+- `docker run --entrypoint sh tax7i-backend -c 'id -u'` → **1001**(비root), `/app`에는 `app.jar` 하나
+  (`bootJar`만 실행하므로 plain jar가 생기지 않아 지시서 438행의 `jar { enabled = false }`는 불필요)
+- 이미지의 jar를 꺼내 zip 목록 확인: yaml은 `BOOT-INF/classes/application.yaml`만, **`application-local.yaml` 없음**
+- `docker image inspect` Healthcheck: `curl -fs http://localhost:8080/actuator/health/readiness`, interval 10s, start-period 90s, retries 5
+- `healthy` 상태 확인은 compose로 DB·Redis와 함께 띄우는 4단계에서 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/Dockerfile` | 교체 |
+| `BE/.dockerignore` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 2단계 — 스케줄러·시드 데이터 스위치
+
+### 배경
+`SchedulingConfig`는 조건 없는 `@EnableScheduling`이라 BE 2대 구성에서 `TaxCalendarScheduler`(매일 09:00 FCM)가 중복 실행되고,
+`CardDataInitializer`는 조건 없는 `CommandLineRunner`라 운영 DB에도 더미 유저 2명(`01011111111`, `01022222222`)과 카드를 만든다(`docs/PRE_CICD.md` 2단계).
+
+### 작업 내역
+- `SchedulingConfig`: `@ConditionalOnProperty(name = "app.scheduling.enabled", havingValue = "true", matchIfMissing = true)`
+- `CardDataInitializer`: `@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true", matchIfMissing = true)`
+- 1단계 yaml이 두 키를 `APP_SCHEDULING_ENABLED`·`APP_SEED_ENABLED`(기본 true)로 연결 → 기본 동작 불변
+- 세법 기준 데이터 Initializer 4개(`TaxBracket`, `TaxParameter`, `TaxDeadline`, `BookEntryAmountBackfill`)는 운영에서도 필요하므로 불변
+
+### 결과
+- `./gradlew test` → **tests=308 failures=0 errors=0 skipped=1**
+- 빈 DB에서 `APP_SEED_ENABLED=false` 기동 확인은 컨테이너 경로가 생기는 4단계에서 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/java/com/ssafy/tax7i/config/SchedulingConfig.java` | 조건 애너테이션 추가 |
+| `BE/src/main/java/com/ssafy/tax7i/config/CardDataInitializer.java` | 조건 애너테이션 추가 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 1단계 — 설정 환경변수 외부화 + `ssafy.oauth` 죽은 설정 제거
+
+### 배경
+같은 이미지를 로컬·성능측정·운영에 쓰려면 환경마다 달라지는 값이 환경변수로 열려 있어야 한다.
+`app.test-login.enabled: false`가 하드코딩돼 매뉴얼의 `TEST_LOGIN_ENABLED`가 바인딩되지 않았고,
+`ssafy.oauth` 블록은 Java 소비처가 0건이었다(`docs/PRE_CICD.md` 1단계).
+
+### 작업 내역
+- `BE/src/main/resources/application.yaml`을 지시서 239-331행으로 교체. 단, 지시서 버전에서 빠진 기존 Actuator 주석 2줄은 유지
+  - 신규 placeholder: `TEST_LOGIN_ENABLED`, `JPA_DDL_AUTO`, `DB_POOL_MAX`, `APP_SEED_ENABLED`, `APP_SCHEDULING_ENABLED`, `AI_MOCK_ENABLED`
+  - `server.shutdown: graceful` + `spring.lifecycle.timeout-per-shutdown-phase: 30s`, `server.forward-headers-strategy: native`
+  - `ssafy.oauth` 블록 삭제
+- `exec/포팅_매뉴얼.md` Backend 환경변수 표에 신규 5개 추가. 지시서는 `SSAFY_*` 3개 삭제도 요구하지만 표에 원래 없었다(변경 없음)
+- 지난 항목에서 "디스크에 남아 있다"고 적은 삭제 디렉토리 캐시는 이후 로컬에서 지웠다(`git status`가 untracked로 표시해 실수로 커밋될 위험). 단 VS Code Java 확장이 `2026_oneday_journal/**/nb-cache`를 다시 만들어 untracked로 남는다 — 커밋하지 않음
+
+### 결과
+- `command grep -rn "ssafy.oauth\|SSAFY_CLIENT\|ssafy:" BE/src` → **0건**
+- `./gradlew test` → **tests=308 failures=0 errors=0 skipped=1**
+- `TEST_LOGIN_ENABLED` 런타임 확인(true→200 / 없음→403)은 컨테이너 기동이 가능한 4·7단계에서 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/resources/application.yaml` | 환경변수 외부화, `ssafy.oauth` 삭제, graceful shutdown |
+| `exec/포팅_매뉴얼.md` | 환경변수 표 5행 추가 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 0단계 묶음 C — 로컬 원장 전환 후 남은 미사용 메서드 제거 + 탐지 스크립트
+
+### 배경
+SSAFY 금융망 HTTP 클라이언트를 DB 원장으로 바꾸면서 호출되지 않는 메서드가 남았다(`docs/PRE_CICD.md` 0단계 묶음 C).
+
+### 작업 내역
+- 재확인: `command grep -rn "\bsearchMember\b|\bregisterMember\b|\bgetMyCards\b" BE/src` → 선언부 1건씩만(호출 0건)
+- 삭제: `SsafyFinanceClient.searchMember`·`registerMember`(구 `:190`,`:194`), `SsafyCreditCardClient.getMyCards`(구 `:120`)
+- **연쇄 삭제**(지시서 116행 규칙): `getMyCards` 삭제 후
+  - `scripts/find_unused_java.py`가 `banking/client/dto/SsafyCreditCardListResponse.java`를 새 클래스 후보로 출력 → 삭제
+  - `CardRepository.findByUser_SsafyUserKeyAndDeletedFalse`는 유일한 호출부가 `getMyCards`였다(main·test 검색 0건) → 삭제.
+    `AccountRepository`의 같은 이름 메서드는 `SsafyFinanceClient.java:55`가 사용 중이라 유지
+- `scripts/find_unused_java.py` 신규(지시서 141-211행을 그대로 추출)
+
+### 결과
+- `./gradlew compileJava compileTestJava test --no-daemon -q` exit 0, **tests=308 failures=0 errors=0 skipped=1**
+- 탐지 스크립트 결과: 삭제 전 클래스 5·메서드 23 (지시서 213행 수치와 일치) → 현재 **클래스 0·메서드 20**.
+  남은 20개는 확인 필요 5개(`ConsentService.getConsents/revokeConsent`, `getVehicleNoInsuranceRatio`, `AiCategoryMapper.mapToName/mapToCode`)와
+  프레임워크 호출 15개(리스너·스케줄러·AOP·JPA 컨버터·템플릿 getter·`@Recover`)
+- `git diff --cached --shortstat`(BE): 4 files changed, 53 deletions(-)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 지시서 "확인 필요" 표 7개 항목(ConsentService, getVehicleNoInsuranceRatio, AiCategoryMapper, `FE/src/`, `FE/webview/`, `Jenkinsfile`, `Ssafy*` 클래스명)은 건드리지 않음
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/.../banking/client/SsafyFinanceClient.java` | 메서드 2개 삭제 |
+| `BE/.../banking/client/SsafyCreditCardClient.java` | `getMyCards` 삭제 |
+| `BE/.../banking/client/dto/SsafyCreditCardListResponse.java` | 삭제(연쇄) |
+| `BE/.../card/repository/CardRepository.java` | 미사용 쿼리 메서드 삭제(연쇄) |
+| `scripts/find_unused_java.py` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 0단계 묶음 B — 참조 0건 BE 클래스 5개 제거
+
+### 배경
+`card/dto` DTO 4개와 미구현 보상 이벤트가 어디에서도 쓰이지 않는다(`docs/PRE_CICD.md` 0단계 묶음 B).
+
+### 작업 내역
+- 재확인: `command grep -rlw <클래스명> BE/src` → 5개 모두 자기 파일 1건만 매칭(외부 참조 0건)
+- `scripts/find_unused_java.py`(지시서 141-211행)도 같은 5개를 클래스 후보로 출력
+- `git rm` 대상: `CardBalanceResponse`, `CardDepositRequest`, `CardDepositResponse`, `CreateCardFromAccountRequest`, `payment/event/BookEntryCreationFailedEvent`
+
+### 결과
+- `./gradlew compileJava compileTestJava test --no-daemon -q` exit 0, 결과 XML 집계 **tests=308 failures=0 errors=0 skipped=1** (기준선 유지)
+- `git diff --cached --shortstat`: 5 files changed, 52 deletions(-)
+- 참고: `./gradlew test`는 `SampleExportGenerator` 테스트가 `docs/samples/*`를 다시 써서 작업 트리를 더럽힌다. 매번 `git restore docs/samples`로 되돌렸다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/java/com/ssafy/tax7i/card/dto/{CardBalanceResponse,CardDepositRequest,CardDepositResponse,CreateCardFromAccountRequest}.java` | 삭제 |
+| `BE/src/main/java/com/ssafy/tax7i/payment/event/BookEntryCreationFailedEvent.java` | 삭제 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 0단계 묶음 A — 서비스와 무관한 디렉토리·파일 제거
+
+### 배경
+저장소에 서비스와 무관한 연습 프로젝트, 산출물 사본, 빌드 불가 Dockerfile이 섞여 있다(`docs/PRE_CICD.md` 0단계).
+
+### 작업 내역
+- 삭제 직전 재확인(지시서 78-81행 검색, `--exclude-dir=node_modules,build,.gradle` 추가) → 5개 대상 모두 **참조 0건**
+- `jieonPractice/`는 사용자 확인 후 삭제
+- `git rm -r 2026_oneday_journal jieonPractice MyApplication excel Dockerfile`
+
+### 결과
+`git diff --cached --shortstat`: **128 files changed, 3146 deletions(-)**.
+빌드 영향 없음(compose·매뉴얼은 `BE/Dockerfile`만 참조, 코드가 쓰는 엑셀 템플릿은 `BE/src/main/resources/templates/excel/`).
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 세 안드로이드 디렉토리의 gitignore 대상 로컬 캐시(`.gradle/`, `app/build/`)는 추적 파일이 아니라 디스크에 남아 있다. 필요하면 로컬에서 직접 지운다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `2026_oneday_journal/`, `jieonPractice/`, `MyApplication/` | 삭제 |
+| `excel/` (루트), `Dockerfile` (루트) | 삭제 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: PRE_CICD 지시서 착수 — 기준선 측정 + 문서와 실제의 차이
+
+### 배경
+`docs/PRE_CICD.md`(CI/CD 직전 완성 지시서, 0~9단계)를 브랜치 `chore/pre-cicd`에서 구현한다.
+지시서 규칙 0-3에 따라 각 단계의 "현재 상태 근거"를 실제 저장소와 먼저 대조했다.
+
+### 작업 내역
+- 루트에 있던 untracked `PRE_CICD.md`를 지시서가 전제하는 경로 `docs/PRE_CICD.md`로 이동해 커밋
+- JDK 17 설치: `winget install EclipseAdoptium.Temurin.17.JDK` → `C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`
+  (시스템 `JAVA_HOME`은 JDK 25 그대로 두고 명령마다 지정)
+- 기준선: `JAVA_HOME=<jdk17> ./gradlew test --no-daemon` → BUILD SUCCESSFUL 2m21s,
+  결과 XML 집계 **tests=308 failures=0 errors=0 skipped=1**
+  (Windows에서는 `BE/build.gradle:12-14`가 빌드 산출물을 `C:/tmp/tax7i-build`로 보낸다 — Windows 한정이라 Docker·CI 영향 없음)
+
+### 문서와 실제의 차이 (사용자와 합의한 처리)
+| 차이 | 처리 |
+|---|---|
+| `docs/IMPROVEMENT_PLAN.md` 없음(지시서가 여러 번 참조) | 미작성 문서로 간주. 참조는 그대로 두고 CLAUDE.md에 미작성 명시 |
+| `scripts/smoke_payment_ledger.py`가 저장소 전 이력에 없음(`git log --all -- '*smoke_payment_ledger*'` 0건). 7단계는 "수정"을 전제 | 새로 작성 |
+| `jq` 미설치 + Windows 경로(`C:\...`) → 9단계 bash 훅이 매칭 실패할 위험(지시서 866행 경고) | 훅을 Python으로 작성 |
+| JAVA_HOME이 JDK 25, JDK 17 없음 | 위와 같이 설치 |
+| `jieonPractice/` 삭제는 "사람 확인 필요" | 사용자 확인 → 삭제 |
+| 로컬 전용 `BE/src/main/resources/application-local.yaml`(시크릿 포함, gitignore 대상)이 Docker 빌드 컨텍스트로 들어감 | 3단계 `BE/.dockerignore`에 추가 |
+
+나머지 "현재 상태 근거"(SchedulingConfig·CardDataInitializer 무조건 실행, `ai.mock.enabled` 존재 `AiServiceClient.java:21`,
+worker용 yaml 없음, nginx `tax-backend`, health.py 항상 ok, prometheus `host.docker.internal:8080`,
+`merchant-test.html`의 죽은 URL, `.github/workflows`·`.claude/` 없음)는 문서와 일치했다.
+
+### 결과
+기준선 308개 통과 확인. 구현 착수.
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `docs/PRE_CICD.md` | 신규(루트 untracked 파일 이동) |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-08-04: 세션 마무리 — 재개 지점 기록
 
 ### 배경
