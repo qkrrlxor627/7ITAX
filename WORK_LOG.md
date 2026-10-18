@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 4단계 — compose `worker` → `backend` + `.env.example`
+
+### 배경
+compose의 `worker`는 `SPRING_PROFILES_ACTIVE: worker`인데 `application-worker.yaml`이 없어(`command grep -rn worker BE/src/main/resources` → 로컬 전용 파일 주석 1건뿐) 이름만 다른 backend였고,
+AI 최초 기동(`start_period: 600s`)을 기다렸다. 필요한 환경변수 목록도 compose 주석·매뉴얼에 흩어져 있었다(`docs/PRE_CICD.md` 4단계).
+
+### 작업 내역
+- `docker-compose.yml`: `worker`를 지시서 463-493행 `backend`로 교체(8080 노출, `env_file: .env`(required:false), AI 의존 제거)
+- `docker-compose.yml` **추가 변경**: postgres 호스트 포트를 `${POSTGRES_HOST_PORT:-5432}`로 열었다.
+  이 PC에 Windows 서비스 `postgresql-x64-17`이 5432를 점유해 `Bind for 0.0.0.0:5432 failed: port is already allocated`로 기동 실패.
+  기본값은 그대로 5432라 CI·다른 PC 동작은 같고, 컨테이너 간 통신(backend→postgres:5432)과 무관하다
+- `.env.example` 신규(지시서 501-526행 + `POSTGRES_HOST_PORT=5432` 안내)
+- `monitoring/prometheus/prometheus.yml`: `tax7i-backend` 타깃 `backend:8080`, bootRun용은 주석, `tax7i-worker` 주석 블록 삭제
+- 로컬 `.env`(gitignore 대상)에 스위치 키와 `POSTGRES_HOST_PORT=5433` 추가
+- **로컬 postgres 볼륨 초기화(사용자 승인)**: 기존 `7itax_postgres-data`(2026-08-03 생성, 유저 4·카드 2·결제 0·장부 0)는 이전 AES 키로 암호화돼 있어
+  새 키로 기동하면 `AesEncryptor.convertToEntityAttribute` → `복호화에 실패했습니다`로 크래시 루프(RestartCount 16). `docker volume rm 7itax_postgres-data`
+
+### 결과
+- `docker compose config -q` → 출력 없음(exit 0)
+- `MSYS_NO_PATHCONV=1 docker run ... promtool check config` → `SUCCESS: 5 rules found`
+- 빈 DB + 임시 override(`APP_SEED_ENABLED=false`, `TEST_LOGIN_ENABLED=false`)로 `up -d postgres redis backend`:
+  **33초 만에 healthy**, RestartCount 0, `users` 0건, `[CardDataInitializer]` 로그 0줄(2단계 검증), `POST /api/auth/test-login` → **403**(1단계 검증), readiness `{"status":"UP"}`
+- 기본 `.env`로 재생성: healthy, `users=2 cards=2`, `[CardDataInitializer] 유저가 없어 더미 유저 2명을 생성합니다.`, test-login → **200**
+- Prometheus `/api/v1/targets`: `('tax7i-backend', 'http://backend:8080/actuator/prometheus', 'up')`
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `docker-compose.yml` | `worker`→`backend`, postgres 호스트 포트 변수화 |
+| `.env.example` | 신규 |
+| `monitoring/prometheus/prometheus.yml` | 스크랩 타깃 변경 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 3단계 — 운영용 BE 이미지
 
 ### 배경
