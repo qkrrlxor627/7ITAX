@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 6단계 — AI readiness 엔드포인트
+
+### 배경
+`ai/app/routers/health.py`는 항상 `{"status": "ok"}`라, `ANTHROPIC_API_KEY`가 없어도 health는 green인데 chat만 실패한다(CLAUDE.md AI-6).
+liveness와 readiness를 구분하지 않는다(`docs/PRE_CICD.md` 6단계).
+
+### 작업 내역
+- `ai/app/routers/health.py`를 지시서 626-645행으로 교체: `/api/v1/health/`(liveness, 기존과 같은 응답) + `/api/v1/health/ready`(키 없으면 503)
+- `ai/tests/test_health.py` 신규(지시서 651-681행): health 라우터만 붙인 앱으로 3케이스
+- AI 로직(`ai/app/services/**` 등)은 수정하지 않음
+
+### 결과
+- 이 PC에는 AI venv가 없다(`ai/`에 venv 없음, 시스템 python에 fastapi 없음). `requirements.txt` 전체(torch 등)는 무거워
+  scratchpad에 최소 venv(`fastapi httpx pydantic-settings pytest pytest-asyncio`)를 만들어 **`--noconftest`** 로 실행:
+  `pytest -q --noconftest tests/test_health.py` → **3 passed in 1.23s**
+  (`tests/conftest.py`가 `app.main`·서비스를 임포트해 전체 의존성이 필요하다 — 지시서 684행. 테스트 자체는 conftest 픽스처를 쓰지 않는다)
+- conftest를 포함한 실행은 8단계 CI `ai-test` 잡(전체 requirements 설치)에서 확인한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `ai/app/routers/health.py` | `/ready` 추가 |
+| `ai/tests/test_health.py` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 5단계 — nginx SSE 프록시 설정
 
 ### 배경
