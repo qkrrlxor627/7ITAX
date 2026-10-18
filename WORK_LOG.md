@@ -5,6 +5,50 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 9단계 — 하네스(훅·검증 에이전트) + CLAUDE.md 갱신
+
+### 배경
+CLAUDE.md 규칙(WORK_LOG 필수, `command grep`, AI 로직 불변)이 문서에만 있어 지켜지는지 사람이 확인해야 했다(`docs/PRE_CICD.md` 9단계).
+
+### 작업 내역
+- **훅을 bash+jq 대신 Python으로 작성**(사용자 결정). 이 PC에 `jq`가 없고, 지시서 866행 경고대로 bash 접두어 비교는 `C:\...` 경로를 놓친다.
+  `.claude/hooks/{_common,protect_paths,guard_bash,compile_check,check_done}.py` — 지시서 910-999행 bash 로직을 이식
+  - 경로: `os.path.relpath`로 프로젝트 기준 상대경로(대소문자 무시 비교, 원래 대소문자 유지) 후 `\`→`/`
+  - 입출력: stdin을 UTF-8로 디코드, 차단 메시지를 UTF-8로 출력(Windows 기본 cp949로 읽으면 한글 경로에서 JSON 파싱이 실패해 **훅이 그냥 통과**한다)
+  - gradle 호출 훅은 `JAVA17_HOME`이 있으면 `JAVA_HOME`으로 주입, `gradlew(.bat)`는 절대경로로 실행
+  - `check_done`은 BE 테스트가 다시 쓴 `docs/samples/*`만 되돌린다(원래 수정 중이던 샘플은 유지)
+  - 지시서 대비 확장: `.env` 차단을 루트뿐 아니라 하위 디렉토리(`ai/.env`)까지
+- `.claude/settings.json`(공용, `python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/*.py"`), `.claude/agents/plan-verifier.md`
+- `.claude/settings.local.json`(개인, 미추적): `env.JAVA17_HOME` = 이 PC의 Temurin 17 경로
+- `.gitignore`: `# personal` 아래 `.claude` 전체 무시 → `.claude/*` 무시 + `settings.json`·`hooks/`·`agents/`만 추적, `__pycache__` 무시
+- `CLAUDE.md`: 진행 상황, "작업 지시서" 섹션(IMPROVEMENT_PLAN 미작성 명시), 빌드·실행(verify_stack, 기준선 310, application-local 자동 로드, AES 키 교체 위험, 시드·장부 기준, `POSTGRES_HOST_PORT`), AI-6에 `/ready`, 해결된 `ssafy.oauth` 항목 삭제, 문서 지도에 `docs/PRE_CICD.md`
+
+### 결과
+- 샘플 입력 테스트(scratchpad `test_hooks.py`, Python 3.9·3.11 각각) → **26/26 통과**
+  (AI 서비스 백슬래시·대소문자 혼용·한글 파일명·상대경로 차단, health.py·`.env.example`·프로젝트 밖 통과, main/HEAD:main/force push 차단, 브랜치·maintenance 푸시 통과, 맨 grep/find·파이프 grep 차단, `command grep` 통과, `down -v` 차단·CI=true 허용)
+- **세션 실동작 확인**: 맨 `grep` 실행 → `PreToolUse:Bash hook error ... 차단: 이 환경에서 맨 grep/find는...`,
+  `ai/app/services/__init__.py` 쓰기 → `PreToolUse:Write hook error ... 차단: ... AI 로직이다` (`git status ai/` 변경 없음)
+- `compile_check`: 실제 BE 자바 경로 → gradle 컴파일 15초 exit 0, `JAVA17_HOME=C:\nope` → exit 2 + `JAVA_HOME is set to an invalid directory`
+  - 처음 구현은 두 가지 이유로 gradle을 실행하지 못하고 그냥 통과했다: `normcase`가 상대경로를 소문자로 바꿔 `BE/src/` 비교 실패, `cmd /c gradlew.bat`이 cwd에서 못 찾음 → 둘 다 수정
+- `check_done`: 코드 경로 변경 + WORK_LOG 미변경 → exit 2 + "아직 끝내지 말 것: ... WORK_LOG.md에 항목이 없다", 변경 없음 → exit 0,
+  BE 경로 변경(`BE/_hooktest.txt`) + WORK_LOG 변경 → gradle test 실행 후 exit 0(7초). 소스 변경이 없어 test 태스크가 up-to-date였으므로
+  **`docs/samples` 되돌리기 분기는 이번에 실제로 타지 않았다**(다음 BE 소스 수정 때 확인 필요)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- `find_unused_java.py`를 Stop 훅에 연결할지는 오탐 빈도를 보고 결정(지시서 0단계 재발 방지 칸)
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `.claude/settings.json` | 신규 |
+| `.claude/hooks/*.py` (5개) | 신규 |
+| `.claude/agents/plan-verifier.md` | 신규 |
+| `.gitignore` | `.claude` 규칙 세분화 |
+| `CLAUDE.md` | 갱신 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 8단계 — GitHub Actions CI 워크플로
 
 ### 배경
