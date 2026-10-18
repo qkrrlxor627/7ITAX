@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 8단계 — GitHub Actions CI 워크플로
+
+### 배경
+`.github/workflows/`가 없었고(`.github/`에는 `modernize/java-upgrade`만), `Jenkinsfile`에는 테스트 스테이지가 없어 테스트가 깨져도 머지가 막히지 않았다(`docs/PRE_CICD.md` 8단계).
+
+### 작업 내역
+- `.github/workflows/ci.yml` 신규(지시서 778-843행 그대로): `pull_request`·`push`(main) 트리거, 잡 3개
+  - `be-test`: JDK 17 temurin + `gradle/actions/setup-gradle@v4` + Redis 서비스 → `./gradlew test`, 실패 시 리포트 업로드
+  - `ai-test`: Python 3.11 + `requirements.txt` + `pytest pytest-asyncio httpx` → `pytest -q tests/test_health.py`
+  - `stack-smoke`(`needs: be-test`): `.env.example` 복사 + `openssl rand`로 CI 전용 키 생성 → `./scripts/verify_stack.sh` → `docker compose down -v`
+- CI 시크릿 등록 불필요: BE 테스트는 `application-test.yaml`의 테스트 키를 쓰고, `stack-smoke`는 실행마다 임시 키를 만든다
+
+### 결과
+- 로컬에서는 YAML 파싱만 확인: `yaml.safe_load` → jobs `['be-test', 'ai-test', 'stack-smoke']`
+- 실제 실행·소요 시간은 PR에서 확인한다(`[측정: ___]`은 PR 결과로 채운다)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- `Jenkinsfile` 삭제(CD 문서에서 대체 확정 후), `main` 브랜치 보호 규칙의 필수 체크 지정(GitHub 웹 설정, 사용자 작업)
+- `ai/requirements.txt`의 `--extra-index-url .../whl/cpu`가 있어도 pip가 PyPI의 CUDA torch를 고를 수 있다. `ai-test` 소요 시간을 보고 판단
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `.github/workflows/ci.yml` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 7단계 — 한 번에 검증하는 스크립트
 
 ### 배경
