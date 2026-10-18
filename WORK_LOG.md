@@ -5,6 +5,147 @@
 
 ---
 
+## 2026-10-18: 포트폴리오 질문 대비 — 세금·PDF·분류/RAG 구현 실태 조사 (코드 무수정)
+
+### 배경
+포트폴리오 문답 3건(04 직접 개발한 BE 기능, 05 PDF 한글 깨짐 해결, 06 규칙 기반 vs RAG·LLM 적용 위치)에 대해 코드 근거를 확인했다.
+git 이력은 `Initial commit` + 본인 커밋뿐이라 **팀원별 기여는 저장소로 증명할 수 없다** — 아래는 "구현 여부"까지만 확인한 내용이다.
+
+### 작업 내역
+- 세금: `TaxCalculationEngine.java:32-164`(DB 누진세율 구간 → 산출세액·세액공제·경비조정), `TaxController.java:48-168`(계산·신고 CRUD·제출·납부·PDF·영수증), `VatController`, `TaxSavingService`
+- PDF: `PdfService.java:38,55`(신고서·납부 영수증), `SimpleLedgerPdfExporter`, 엑셀 `VatExcelExporter`·`IncomeTaxExcelExporter`
+- 한글 글꼴: `ExcelExportHelper.java:63-88`이 classpath의 `fonts/NanumGothic-{Regular,Bold}.ttf`를 `useFont(..., "NanumGothic", 400/700, subset=true)`로 등록하고,
+  템플릿 3개(`templates/pdf/{simple-ledger,tax-receipt,tax-return}.html:11`)가 `font-family: 'NanumGothic'`. 리소스 누락 시 예외(`:84`). 증상 발견 시점은 기록 없음
+- DB: `db/init/01_schema.sql`(CREATE TABLE 22개), `02_seed_data.sql`, `db/migration/V2·V3`. **Flyway 미도입** — `build.gradle`에 의존성 없음, `application.yaml:22` `ddl-auto: update`
+- 분류: `TaxClassificationService.java:52-145` 학습 이력 → MCC Tier A → 금액조건 → 가맹점 키워드 → (룰 없음/미분류 시) AI → 기본값.
+  AI 결과 점수 상한 89로 CONFIRMED 방지(`AiClassificationService.java:43`)
+- AI: fine-tuned 모델 경로 `ai/models/tax_classifier`(`tax_classifier_service.py:18`)가 **저장소에 없음**(`ls ai/models` 실패) → 실제로는 `rule_based_classifier.py` 키워드 폴백(20세목)이 동작.
+  분류 근거 설명은 RAG+LLM(`explanation_service.py`), 챗봇은 임베딩 의도분류 → BM25+벡터(bge-m3/Chroma) → bge-reranker-v2-m3 → 모델 티어 선택(`chat_service.py:74-150`)
+
+### 결과
+- 04 답변 근거: 세금 계산·신고·납부, DB 스키마, 증빙 PDF 모두 구현 확인. 단 "Flyway로 관리"는 사실과 다름
+- 05: 원인은 openhtmltopdf 기본 PDF 글꼴에 한글 글리프 없음 + 서버/컨테이너에 한글 시스템 글꼴 부재로 추정(코드에는 수정 결과만 존재)
+- 06: 구현 = MCC/키워드 규칙 분류, AI 추천 분류(현재 키워드 폴백), RAG 근거 설명, RAG 챗봇. 설계만 = fine-tuned 분류 모델, 개인화(INT-1)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- `SampleExportGenerator`로 실제 PDF를 생성해 한글 출력을 눈으로 검증하는 작업은 하지 않았다
+- 작업 트리의 기존 미커밋 변경(`AuthService`, `SecurityConfig`, `TestUserProvisioner` 등)은 이 세션 이전 것으로, 이번 항목과 무관하다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `WORK_LOG.md` | 이 항목 추가 |
+
+---
+
+## 2026-10-18: 성능 테스트 시나리오 문서 + k6 스크립트 + 로컬 측정
+
+### 배경
+로컬과 배포 환경에서 기본 성능 테스트를 하려 했으나 저장소에 부하 시나리오·도구가 없었다(PRE_CICD가 참조하는 "IMPROVEMENT_PLAN 13번 k6"는 미작성).
+두 환경 결과를 비교하려면 시나리오·합격 기준을 문서로 고정해야 한다.
+
+### 작업 내역
+- `docs/PERF_TEST.md` 신규: 목적, 합격 기준(read p95<500ms·pay p95<1000ms·export p95<3000ms·오류<1%), 사용자 행동 모델(조회 65/결제 25/취소 5/PDF 4/장부 확인 1%),
+  프로필 6종(smoke·load·stress·spike·soak·contention), 로컬·배포(성능측정) 환경 실행법과 주의(운영 실서비스 금지, 부하 발생기 분리), 결과 해석, 결과 기록 표
+- `scripts/perf/tax7i.js`(k6): `PROFILE`·`BASE_URL`·`USERS`·`VUS`·`DURATION`·`CONTENTION`. `setup()`에서 간편 로그인으로 사용자(0107700xxxx)를 미리 만들고,
+  401/403이면 재로그인. 요청에 `flow` 태그를 달아 기준을 흐름별로 적용
+- `scripts/perf/run.sh`: k6를 `grafana/k6:0.54.0` 컨테이너로 실행(설치 불필요). BASE_URL 미지정 시 compose 네트워크 안 `backend:8080`
+- `scripts/perf/sample_metrics.py`: `/actuator/prometheus`에서 Hikari active/pending, 힙, CPU, GC, executor를 주기 기록(CSV) + 최대값 요약
+- `docker-compose.yml` backend `environment`에 `AI_MOCK_ENABLED: ${AI_MOCK_ENABLED:-false}`, `DB_POOL_MAX: ${DB_POOL_MAX:-10}` —
+  기존엔 `env_file`로만 넘겨 실행 시 셸 변수로 덮어쓸 수 없었다(기본 동작은 `.env` 값 그대로)
+- `scripts/perf/.gitignore`: `results/`(원시 결과는 커밋하지 않고 요약을 PERF_TEST.md 7절에 기록)
+
+### 결과
+- 측정 조건: `docker compose stop ai`, `AI_MOCK_ENABLED=true docker compose up -d backend` → 로그 `[MOCK AI] MockAiServiceClient 활성화`, `printenv` AI_MOCK_ENABLED=true·DB_POOL_MAX=10
+- smoke(VU 2, 30초): checks 87/87, http_req_failed 0/193, read p95 47.1ms, pay p95 46.4ms, export 1.13s(1건), 5.7 req/s → 통과
+- **load 1차(VU 50, 6.5분)**: k6 기준(p95)은 통과(exit 0)했지만 **실질 불합격**. 32.7 req/s, read p95 280ms·pay p95 127ms·export p95 1.84s,
+  그러나 **p99 ≈ 30초, 최대 60초 타임아웃**, 실패 81/12,875(0.62%), `ledger_missing` 3
+  - 서버 지표: Hikari **active 10/10 + pending 52가 CPU 0%인 채 30초씩 지속**(교착 후 Hikari 대기 한도 30초에 풀림), 힙 최대 약 2.1GB
+  - 로그: `Connection is not available` 283건, `카드 거래 기록 저장 실패 ... Could not open JPA EntityManager` **28건(기록 유실)**,
+    `캐시 조회 실패 cache=mccTaxRules ... Unrecognized field "merchantKeywordCondition"` 수천 건
+- **원인 1(풀 교착)**: 결제 트랜잭션(계좌 행 잠금 보유) 안에서 `CardTransactionSaveService.save`를 `REQUIRES_NEW`로 호출(`CardTransactionSaveService.java:20` 수정 전)
+  → 커넥션 1개를 쥔 채 2번째를 요구. 동시 결제가 풀 크기(10)만큼 몰리면 전원 대기. 부수 문제: 결제가 롤백돼도 기록은 커밋됨
+- **원인 2(캐시)**: `MccTaxRule`의 계산용 getter(`isMerchantKeywordCondition` 등)가 JSON 필드로 저장되나 역직렬화 실패 → 매번 DB 재조회 + WARN
+- **원인 3(비동기 실행기 위험)**: `@Async` 기본 실행기가 core 2·queue 50·`CallerRunsPolicy`(이름 `fcm-notify-`). 큐가 차면 요청 스레드가 커넥션을 쥔 채
+  `REQUIRES_NEW` 리스너를 실행해 같은 교착 가능. 1차 측정에서 큐 최대 26
+- **수정**: 카드 거래 기록을 `CardTransactionEvent` → `@Async @TransactionalEventListener(AFTER_COMMIT, fallbackExecution=true)`로 커밋 후 저장,
+  `CacheConfig` ObjectMapper `FAIL_ON_UNKNOWN_PROPERTIES` 끔, 실행기 core 4·max 8·queue 500(`ASYNC_CORE_SIZE`·`ASYNC_MAX_SIZE`·`ASYNC_QUEUE_CAPACITY`, 이름 `async-`)
+  - 테스트: `CardTransactionSaveServiceTest` 2개 신규, `PaymentServiceTest` 4곳을 이벤트 발행 검증으로 변경 → `./gradlew test` **326 통과 / 0 실패 / skipped 1**
+- 수정 후 load 재측정은 다음 항목에 기록한다(같은 시나리오·같은 DB, 단 1차 결제분만큼 데이터가 늘어난 상태)
+- `sample_metrics.py`의 `tomcat_busy`는 비어 있다(`server.tomcat.mbeanregistry.enabled` 미설정으로 지표 미노출)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 배포 환경 측정: 아직 CD·성능측정 환경이 없다(RELEASE URL도 죽은 주소). 문서 5-2와 `run.sh <URL>`로 준비만 했다
+- 톰캣 스레드 지표 노출, AI 챗봇 부하(외부 LLM 의존·비용) 측정
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `docs/PERF_TEST.md` | 신규 |
+| `scripts/perf/tax7i.js`, `run.sh`, `sample_metrics.py`, `.gitignore` | 신규 |
+| `docker-compose.yml` | backend 성능 측정 스위치 2개 |
+| `BE/.../card/event/CardTransactionEvent.java`(신규), `card/service/CardTransactionSaveService.java`, `payment/service/PaymentService.java` | 카드 거래 기록 커밋 후 비동기 |
+| `BE/.../config/CacheConfig.java`, `config/AsyncRetryConfig.java`, `resources/application.yaml` | 캐시 역직렬화, 비동기 실행기 |
+| `BE/src/test/.../card/service/CardTransactionSaveServiceTest.java`(신규), `payment/service/PaymentServiceTest.java` | 테스트 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
+## 2026-10-18: Swagger 도입 + 간편 로그인(BE·FE) + 앱 QR 결제 "만료" 오표시 수정 + 에뮬레이터 실검증
+
+### 배경
+사용자 요청: BE에 Swagger가 없고, 본인인증·PIN·SMS 흐름 때문에 로컬·에뮬레이터에서 사람을 바꿔 가며 확인하기 어렵다 →
+"로그인을 단순화해 사람 간 구분만 되게". 에뮬레이터 확인 중 앱 QR 결제가 성공해도 "만료"로 뜨는 버그와 FE 빌드 불가 문제를 함께 발견했다.
+
+### 작업 내역
+- **Swagger**: `springdoc-openapi-starter-webmvc-ui:2.8.9`, `OpenApiConfig`(JWT bearer Authorize), `SecurityConfig`에 `/swagger-ui/**`·`/v3/api-docs/**` permitAll,
+  `application.yaml` `springdoc.*.enabled: ${SWAGGER_ENABLED:true}`(`.env.example`에 `SWAGGER_ENABLED=true`, 운영 false)
+- **BE 간편 로그인** `POST /api/auth/simple-login {phoneNumber, name?, cardType?}` — `app.test-login.enabled`(TEST_LOGIN_ENABLED)일 때만.
+  전화번호가 같은 사용자가 있으면 그 사용자(본인인증 가입자 포함), 없으면 ci `test-ci-{번호}`로 생성 + 카드가 없으면 계좌(500만원)·카드(기본 BUSINESS) 발급
+  - 시드 로직을 `auth/service/TestUserProvisioner`로 추출(`findOrCreate`, `provisionCardIfAbsent`), `CardDataInitializer`는 이를 호출(동작 동일)
+- **FE 간편 로그인**: `BuildConfig.SIMPLE_LOGIN`(debug true / release false), `SimpleLoginScreen`(시드 2명 바로가기 + 번호·이름 입력, 마지막 번호 자동 입력),
+  Splash가 DEBUG면 이 화면으로. `AuthRepository.simpleLogin`이 세션을 비우고 토큰·사용자 정보 저장 후, **페이 가입 플래그를 서버 결제 PIN 등록 여부로 복원**
+  (로컬 플래그만 쓰면 로그인할 때마다 페이 재가입 + 계좌가 계속 늘어남)
+- **QR 결제 오표시 수정**: `confirmQrPayment`가 토큰을 `getAndDelete`로 소비 → 결제자 앱의 상태 폴링(`GET /qr/token/{t}/status`)이 `QR_TOKEN_EXPIRED`(404/410)를 받아
+  `PaymentViewModel.startPollingStatus`가 "QR 토큰이 만료되었습니다"로 표시(서버는 CAPTURED). 소비 시 `qr-pay-done:{token}`(TTL 5분)을 남기고 상태 조회만 이를 본다
+  (확정 경로는 원 토큰만 보므로 중복 결제 방어 유지)
+- **FE 빌드 불가 수정**: 루트 `.gitignore`의 `*.jar`가 `FE/gradle/wrapper/gradle-wrapper.jar`를 막아 클론본에서 `./gradlew`가 `Unable to access jarfile`.
+  `!**/gradle/wrapper/gradle-wrapper.jar` 예외 추가 + BE의 wrapper jar 복사(wrapper jar는 properties의 배포판 9.3.1을 받는다)
+- `scripts/confirm_latest_qr.py`: 에뮬레이터 1대 확인용 가맹점 역할(Redis 최신 `qr-pay:*` 토큰을 확정)
+- 테스트 6개 추가: `AuthServiceTest` simpleLogin 3, `AuthControllerTest` 200/400 2, `PaymentServiceTest` 토큰 소비 후 상태 CAPTURED 1(+ `confirmQrPayment_성공`에 done 키 검증)
+
+### 결과
+- `./gradlew test` **324 통과 / 0 실패 / skipped 1**(41 클래스)
+- Swagger: `/swagger-ui/index.html` 200, `/v3/api-docs` 200 — paths 85, `/api/auth/simple-login` 포함, securitySchemes `bearerAuth`
+  - 첫 `docker compose up -d --build backend`는 `./gradlew dependencies` 단계에서 일시적으로 실패해 **예전 컨테이너가 계속 떠 있었다**(swagger 403). 재빌드로 정상화. 빌드 실패가 `up -d` 출력에 묻히므로 이미지 생성 시각을 확인할 것
+- 간편 로그인(API): 01022222222 → userId 2 이싸피 기존 BUSINESS 카드 / 01033333333+"박싸피" → 신규 36, BUSINESS 카드, 잔액 5,000,000 / 재로그인 → 같은 36·new=false / 01044444444+PERSONAL → 신규 37 PERSONAL
+- 빈 DB 시드(리팩터링 검증): 같은 postgres에 `tax7i_fresh` DB를 만들고 이미지로 임시 백엔드(18080) 기동 → 김싸피 PERSONAL·이싸피 BUSINESS 발급 로그,
+  `smoke_payment_ledger.py http://localhost:18080` → `OK: paymentId=1 ... bookEntryId=1`. 임시 컨테이너·DB 삭제
+- **에뮬레이터 실검증**(Nexus_5_API_29, 커맨드라인 빌드 `assembleDebug` 10분 35초, JDK 23으로 Gradle 구동): 간편 로그인 화면 → 이싸피 바로가기 → 홈 "안녕하세요, 이싸피님".
+  새 번호 01055555555 → "사용자5555" 신규, 홈 수입·비용 0(사용자 분리 확인) → 페이 가입(약관·결제 PIN, 외부 인증 없음) → QR 결제 탭 →
+  수정 전: 서버 CAPTURED(paymentId 57)인데 앱 "결제 실패 — QR 토큰이 만료되었습니다" / 수정 후: paymentId 58 → 앱 증빙 추가 화면으로 진행 → 홈 미분류 경비 2건·비용 -2,000.
+  `confirm_latest_qr.py` → paymentId 59 CAPTURED
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 앱 QR 결제 금액·가맹점이 고정(`QrPaymentScreen.kt` 1,000원·첫 가맹점) — CLAUDE.md 미해결 항목에 추가
+- SMS가 필요한 앱 경로(카드 직접 등록 OTP, 신규 기기 추가 인증)는 `SOLAPI_*` 없으면 실패한다(`sms.mock.enabled` 설정 키가 yaml에 없음). 간편 로그인이 카드를 자동 발급하므로 이번엔 우회
+- Android Studio가 2020 버전(build 202)이라 이 프로젝트(compileSdk 36)를 열 수 없다 → 커맨드라인 빌드로 대체
+- FE 자동 테스트는 여전히 없음(에뮬레이터 수동 확인)
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/build.gradle`, `BE/.../config/OpenApiConfig.java`(신규), `config/SecurityConfig.java`, `resources/application.yaml`, `.env.example` | Swagger |
+| `BE/.../auth/service/TestUserProvisioner.java`(신규), `auth/service/AuthService.java`, `auth/controller/AuthController.java`, `auth/dto/SimpleLogin{Request,Response}.java`(신규), `config/CardDataInitializer.java` | 간편 로그인·시드 리팩터링 |
+| `BE/.../payment/service/PaymentService.java` | QR 상태 조회 done 키 |
+| `BE/src/test/.../auth/*Test.java`, `payment/service/PaymentServiceTest.java` | 테스트 6개 |
+| `FE/app/build.gradle.kts`, `FE/.../ui/auth/SimpleLoginScreen.kt`(신규), `ui/auth/SplashScreen.kt`, `ui/navigation/{Route,NavGraph}.kt`, `data/remote/AuthApi.kt`, `data/repository/AuthRepository{,Impl}.kt`, `data/model/auth/SimpleLogin{Request,Response}.kt`(신규), `viewmodel/AuthViewModel.kt` | FE 간편 로그인 |
+| `FE/gradle/wrapper/gradle-wrapper.jar`(신규), `.gitignore` | FE 빌드 가능 |
+| `scripts/confirm_latest_qr.py`(신규) | 가맹점 역할 |
+| `CLAUDE.md`, `261018.md`, `WORK_LOG.md` | 갱신 |
+
+---
+
 ## 2026-10-18: 결제 취소 버그 2건(BUG-A·B) + AI 챗봇 503 수정
 
 ### 배경

@@ -10,7 +10,7 @@ import com.ssafy.tax7i.bookentry.event.PaymentCapturedEvent;
 import com.ssafy.tax7i.card.entity.Card;
 import com.ssafy.tax7i.card.entity.CardTransactionType;
 import com.ssafy.tax7i.card.repository.CardRepository;
-import com.ssafy.tax7i.card.service.CardTransactionSaveService;
+import com.ssafy.tax7i.card.event.CardTransactionEvent;
 import com.ssafy.tax7i.global.exception.BusinessException;
 import com.ssafy.tax7i.global.exception.ErrorCode;
 import com.ssafy.tax7i.payment.dto.*;
@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 public class PaymentService {
 
     private static final String QR_TOKEN_PREFIX = "qr-pay:";
+    private static final String QR_DONE_PREFIX = "qr-pay-done:";
     private static final String MERCHANT_QR_PREFIX = "qr-merchant:";
     private static final long QR_TOKEN_TTL_SECONDS = 300; // 5분
 
@@ -54,7 +55,6 @@ public class PaymentService {
     private final SsafyCreditCardClient ssafyCreditCardClient;
     private final RedisTemplate<String, String> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
-    private final CardTransactionSaveService cardTransactionSaveService;
     private final ObjectMapper objectMapper;
 
     private final Map<String, SseEmitter> qrEmitters = new ConcurrentHashMap<>();
@@ -326,7 +326,8 @@ public class PaymentService {
     }
 
     public QrPaymentStatusResponse getQrPaymentStatus(Long userId, String token) {
-        Long paymentId = peekPaymentIdFromToken(token);
+        String doneId = redisTemplate.opsForValue().get(QR_DONE_PREFIX + token);
+        Long paymentId = doneId != null ? Long.parseLong(doneId) : peekPaymentIdFromToken(token);
         Payment payment = paymentRepository.findByIdAndUserId(paymentId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
@@ -518,6 +519,9 @@ public class PaymentService {
         if (paymentIdStr == null) {
             throw new BusinessException(ErrorCode.QR_TOKEN_EXPIRED);
         }
+        // 결제자 앱은 같은 토큰으로 상태를 폴링한다. 토큰이 지워지면 확정 직후 폴링이 QR_TOKEN_EXPIRED를 받아
+        // 성공한 결제를 "만료"로 표시하므로, 상태 조회 전용 표시를 남긴다(결제 확정 경로는 이 키를 보지 않는다)
+        redisTemplate.opsForValue().set(QR_DONE_PREFIX + token, paymentIdStr, QR_TOKEN_TTL_SECONDS, TimeUnit.SECONDS);
         return Long.parseLong(paymentIdStr);
     }
 
@@ -533,12 +537,9 @@ public class PaymentService {
         ));
     }
 
+    /** 카드 거래 기록은 커밋 후 비동기로 저장한다(CardTransactionSaveService 주석: 결제 중 두 번째 커넥션 요구 → 풀 교착) */
     private void saveCardTransaction(Card card, CardTransactionType type, Long amount, String description, Long paymentBalance) {
-        try {
-            cardTransactionSaveService.save(card, type, amount, description, paymentBalance);
-        } catch (Exception e) {
-            log.warn("카드 거래 기록 저장 실패 (결제는 정상): cardId={}, error={}", card.getId(), e.getMessage());
-        }
+        eventPublisher.publishEvent(new CardTransactionEvent(card.getId(), type, amount, description, paymentBalance));
     }
 
     private String getUserKey(User user) {

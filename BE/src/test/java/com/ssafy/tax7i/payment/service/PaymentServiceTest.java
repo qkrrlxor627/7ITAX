@@ -8,7 +8,7 @@ import com.ssafy.tax7i.bookentry.service.BookEntryService;
 import com.ssafy.tax7i.card.entity.Card;
 import com.ssafy.tax7i.card.entity.CardType;
 import com.ssafy.tax7i.card.repository.CardRepository;
-import com.ssafy.tax7i.card.service.CardTransactionSaveService;
+import com.ssafy.tax7i.card.event.CardTransactionEvent;
 import com.ssafy.tax7i.fcm.service.FcmService;
 import com.ssafy.tax7i.classification.service.TaxClassificationService;
 import com.ssafy.tax7i.global.exception.BusinessException;
@@ -57,7 +57,6 @@ class PaymentServiceTest {
     @Mock private RedisTemplate<String, String> redisTemplate;
     @Mock private ValueOperations<String, String> valueOperations;
     @Mock private ApplicationEventPublisher eventPublisher;
-    @Mock private CardTransactionSaveService cardTransactionSaveService;
     @Mock private FcmService fcmService;
 
     @InjectMocks
@@ -129,7 +128,7 @@ class PaymentServiceTest {
 
         assertThat(response.status()).isEqualTo(PaymentStatus.CAPTURED);
         assertThat(response.amount()).isEqualTo(10000L);
-        verify(cardTransactionSaveService).save(any(), any(), any(), any(), any());
+        verify(eventPublisher).publishEvent(any(CardTransactionEvent.class));
     }
 
     @Test
@@ -176,7 +175,7 @@ class PaymentServiceTest {
 
         assertThat(response.status()).isEqualTo(PaymentStatus.CANCELLED);
         assertThat(response.cancelledAmount()).isEqualTo(10000L);
-        verify(cardTransactionSaveService).save(any(), any(), any(), any(), any());
+        verify(eventPublisher).publishEvent(any(CardTransactionEvent.class));
         verify(eventPublisher).publishEvent(new PaymentCancelledEvent(1L, 1L, 10000L, 0L, "스타벅스"));
     }
 
@@ -262,7 +261,7 @@ class PaymentServiceTest {
 
         assertThat(response.status()).isEqualTo(PaymentStatus.CAPTURED);
         assertThat(response.amount()).isEqualTo(10000L);
-        verify(cardTransactionSaveService).save(any(), any(), any(), any(), any());
+        verify(eventPublisher).publishEvent(any(CardTransactionEvent.class));
     }
 
     @Test
@@ -415,7 +414,24 @@ class PaymentServiceTest {
 
         assertThat(response.status()).isEqualTo(PaymentStatus.CAPTURED);
         assertThat(response.amount()).isEqualTo(10000L);
-        verify(cardTransactionSaveService).save(any(), any(), any(), any(), any());
+        verify(eventPublisher).publishEvent(any(CardTransactionEvent.class));
+        // 토큰을 소비해도 결제자 앱의 상태 폴링용 표시는 남긴다
+        verify(valueOperations).set(eq("qr-pay-done:test-token"), eq("1"), eq(300L), eq(java.util.concurrent.TimeUnit.SECONDS));
+    }
+
+    @Test
+    void getQrPaymentStatus_확정으로_토큰이_소비된뒤에도_CAPTURED() {
+        User user = createUser(1L, "user-key");
+        Card card = createCard(1L, user);
+        Payment payment = createPayment(1L, user, card, 10000L, PaymentStatus.CAPTURED);
+
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.get("qr-pay-done:test-token")).willReturn("1");
+        given(paymentRepository.findByIdAndUserId(1L, 1L)).willReturn(Optional.of(payment));
+
+        QrPaymentStatusResponse response = paymentService.getQrPaymentStatus(1L, "test-token");
+
+        assertThat(response.status()).isEqualTo(PaymentStatus.CAPTURED);
     }
 
     @Test

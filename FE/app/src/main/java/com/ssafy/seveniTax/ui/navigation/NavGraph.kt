@@ -29,6 +29,7 @@ import com.ssafy.seveniTax.ui.auth.PinConfirmScreen
 import com.ssafy.seveniTax.ui.auth.PinLoginScreen
 import com.ssafy.seveniTax.ui.auth.PinSetupScreen
 import com.ssafy.seveniTax.ui.auth.SmsAuthScreen
+import com.ssafy.seveniTax.ui.auth.SimpleLoginScreen
 import com.ssafy.seveniTax.ui.auth.SplashScreen
 import com.ssafy.seveniTax.ui.card.CardAccountSelectScreen
 import com.ssafy.seveniTax.ui.card.CardBusinessInfoScreen
@@ -97,7 +98,7 @@ fun NavGraph(navController: NavHostController, pendingNavigateTo: String? = null
     }
     val hideFabRoutes = setOf(
         // auth
-        Route.Splash.path, Route.PinLogin.path, Route.IdentityVerify.path,
+        Route.Splash.path, Route.PinLogin.path, Route.IdentityVerify.path, Route.SimpleLogin.path,
         Route.SmsAuth.path, Route.PinSetup.path, Route.PinConfirm.path,
         Route.AuthSuccess.path,
         // AI 챗봇
@@ -145,6 +146,14 @@ fun NavGraph(navController: NavHostController, pendingNavigateTo: String? = null
                 }
                 val viewModel: AuthViewModel = hiltViewModel(parentEntry)
                 PinLoginScreen(navController, viewModel)
+            }
+
+            composable(Route.SimpleLogin.path) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(AUTH_GRAPH_ROUTE)
+                }
+                val viewModel: AuthViewModel = hiltViewModel(parentEntry)
+                SimpleLoginScreen(navController, viewModel)
             }
 
             composable(Route.IdentityVerify.path) { backStackEntry ->

@@ -51,6 +51,10 @@ app:
     enabled: ${APP_SEED_ENABLED:true}        # 기동 시 더미 유저·카드 생성(CardDataInitializer)
   scheduling:
     enabled: ${APP_SCHEDULING_ENABLED:true}  # 인스턴스 2대 이상이면 1대만 true
+  async:                                     # @Async 실행기(장부 생성·카드 거래 기록 등). AsyncRetryConfig
+    core-size: ${ASYNC_CORE_SIZE:4}
+    max-size: ${ASYNC_MAX_SIZE:8}
+    queue-capacity: ${ASYNC_QUEUE_CAPACITY:500}
 
 tax:
   office-code: "0305"
@@ -73,6 +77,15 @@ solapi:
   api-key: ${SOLAPI_API_KEY:}
   api-secret: ${SOLAPI_API_SECRET:}
   sender-phone: ${SOLAPI_SENDER_PHONE:}
+
+# Swagger UI(/swagger-ui/index.html)·OpenAPI 문서(/v3/api-docs). 운영은 SWAGGER_ENABLED=false
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    persist-authorization: true   # Authorize에 넣은 토큰을 새로고침해도 유지
+    tags-sorter: alpha
 
 # Actuator: 모니터링(Prometheus/Grafana)용 엔드포인트 노출
 # 운영 환경에서는 별도 management.server.port 분리 + 인증 적용 권장

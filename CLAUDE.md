@@ -45,11 +45,21 @@
 docker compose up -d postgres redis
 cd BE   # JDK 17 필수(시스템 기본 JDK로는 Gradle 구동 불가)
 AES_ENCRYPTION_KEY=<키> JWT_SECRET=<32바이트+> REDIS_PASSWORD=ssafy ./gradlew bootRun
-./gradlew test          # 318개 통과가 기준선 (2026-10-18 결제 취소 수정 후, skipped 1)
+./gradlew test          # 324개 통과가 기준선 (2026-10-18 간편 로그인·QR 상태 수정 후, skipped 1)
 
 # AI — 최초 기동 시 bge-m3 약 2GB 다운로드 + Chroma 자동 인덱싱으로 매우 느림
 cd ai && uvicorn app.main:app
+
+# FE — Android Studio 없이 커맨드라인 빌드(JDK 17+로 Gradle 구동, JDK 21은 toolchain이 자동 다운로드. 첫 빌드 약 10분)
+cd FE && echo "sdk.dir=<Android SDK 경로>" > local.properties && ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+- **Swagger UI**: http://localhost:8080/swagger-ui/index.html (`SWAGGER_ENABLED`, 운영 false).
+  토큰은 `POST /api/auth/simple-login {"phoneNumber":"01022222222"}` → Authorize에 accessToken
+- **간편 로그인**(`TEST_LOGIN_ENABLED=true`일 때만): 전화번호 = 사용자. 처음 보는 번호면 사용자·계좌(500만원)·카드(기본 BUSINESS)를
+  자동 생성(`TestUserProvisioner`). FE DEBUG 빌드(`BuildConfig.SIMPLE_LOGIN`)는 본인인증·PIN 대신 이 화면으로 시작한다
+- **에뮬레이터 1대로 QR 결제**: 앱 [QR 결제] 탭이 1,000원 결제 토큰을 띄우면 `python scripts/confirm_latest_qr.py`가 가맹점 역할로 확정한다
 
 - compose `backend`(8080)와 bootRun은 포트가 겹친다. 둘 중 하나만 쓴다
 - `application-local.yaml`은 `BE/.gitignore:44`로 제외돼 클론본에 없다. 직접 만들면 `application.yaml`의
@@ -68,6 +78,7 @@ cd ai && uvicorn app.main:app
   준비 상태는 `/api/v1/health/ready`(키 없으면 503)로 확인한다
 - **FE RELEASE URL** — `Constants.kt:9,14`가 죽은 `j14c203.p.ssafy.io`를 가리킨다 (DEBUG는 `10.0.2.2`로 정렬됨)
 - **FE 테스트 부재** — `src/test`·`androidTest`에 템플릿 예제 2개뿐. 실질 커버리지 0
+- **FE QR 결제 금액 고정** — `QrPaymentScreen.kt`가 첫 가맹점·1,000원으로 토큰을 만든다(금액 입력 UI 없음)
 
 ## 도메인 규칙
 

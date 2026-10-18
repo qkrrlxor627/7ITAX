@@ -1,5 +1,6 @@
 package com.ssafy.seveniTax.data.repository
 
+import com.ssafy.seveniTax.data.model.auth.SimpleLoginResponse
 import com.ssafy.seveniTax.data.model.auth.TokenResponse
 import com.ssafy.seveniTax.data.model.auth.VerifyIdentityRequest
 import com.ssafy.seveniTax.data.model.auth.VerifyIdentityResponse
@@ -9,6 +10,7 @@ interface AuthRepository {
     suspend fun verifyIdentity(request: VerifyIdentityRequest): ApiResponse<VerifyIdentityResponse>
     suspend fun setupPin(verifyToken: String, pin: String, agreedConsentTypes: Set<String>): ApiResponse<TokenResponse>
     suspend fun login(phoneNumber: String, pin: String): ApiResponse<TokenResponse>
+    suspend fun simpleLogin(phoneNumber: String, name: String?): SimpleLoginResponse
     suspend fun reissue(refreshToken: String): ApiResponse<TokenResponse>
     suspend fun logout()
 

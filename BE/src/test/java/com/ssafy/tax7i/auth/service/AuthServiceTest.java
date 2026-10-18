@@ -5,6 +5,9 @@ import com.ssafy.tax7i.auth.domain.UserStatus;
 import com.ssafy.tax7i.auth.dto.IdentityVerifyRequest;
 import com.ssafy.tax7i.auth.dto.IdentityVerifyResponse;
 import com.ssafy.tax7i.auth.dto.LoginResponse;
+import com.ssafy.tax7i.auth.dto.SimpleLoginRequest;
+import com.ssafy.tax7i.auth.dto.SimpleLoginResponse;
+import com.ssafy.tax7i.card.entity.CardType;
 import com.ssafy.tax7i.auth.repository.UserRepository;
 import com.ssafy.tax7i.auth.service.NiceIdentityMockService.VerificationResult;
 import com.ssafy.tax7i.banking.client.SsafyFinanceClient;
@@ -42,6 +45,7 @@ class AuthServiceTest {
     @Mock private RedisTemplate<String, String> redisTemplate;
     @Mock private ValueOperations<String, String> valueOperations;
     @Mock private SsafyFinanceClient ssafyFinanceClient;
+    @Mock private TestUserProvisioner testUserProvisioner;
 
     @InjectMocks
     private AuthService authService;
@@ -325,6 +329,51 @@ class AuthServiceTest {
         LoginResponse response = authService.testLogin(null);
 
         assertThat(response.accessToken()).isEqualTo("access-token");
+    }
+
+    // ───────────── simpleLogin ─────────────
+
+    @Test
+    void simpleLogin_처음보는번호_사용자와_사업자카드를_만들고_토큰발급() {
+        User user = createUser(7L);
+        given(testUserProvisioner.findOrCreate(eq("01012345678"), eq("홍길동"), any(), any())).willReturn(user);
+        given(testUserProvisioner.provisionCardIfAbsent(user, CardType.BUSINESS)).willReturn(true);
+        given(jwtTokenProvider.createAccessToken(7L)).willReturn("access-token");
+        given(jwtTokenProvider.createRefreshToken(7L)).willReturn("refresh-token");
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+
+        SimpleLoginResponse response = authService.simpleLogin(new SimpleLoginRequest("01012345678", "홍길동", null));
+
+        assertThat(response.accessToken()).isEqualTo("access-token");
+        assertThat(response.userId()).isEqualTo(7L);
+        assertThat(response.name()).isEqualTo("홍길동");
+        assertThat(response.newUser()).isTrue();
+    }
+
+    @Test
+    void simpleLogin_이름없으면_끝4자리로_이름생성() {
+        User user = createUser(8L);
+        given(testUserProvisioner.findOrCreate(eq("01012345678"), eq("사용자5678"), any(), any())).willReturn(user);
+        given(jwtTokenProvider.createAccessToken(8L)).willReturn("access-token");
+        given(jwtTokenProvider.createRefreshToken(8L)).willReturn("refresh-token");
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+
+        SimpleLoginResponse response = authService.simpleLogin(new SimpleLoginRequest("01012345678", " ", CardType.PERSONAL));
+
+        assertThat(response.newUser()).isFalse();
+        then(testUserProvisioner).should().provisionCardIfAbsent(user, CardType.PERSONAL);
+    }
+
+    @Test
+    void simpleLogin_정지된계정_예외() {
+        User user = createUser(9L);
+        setField(user, "status", UserStatus.SUSPENDED);
+        given(testUserProvisioner.findOrCreate(any(), any(), any(), any())).willReturn(user);
+
+        assertThatThrownBy(() -> authService.simpleLogin(new SimpleLoginRequest("01012345678", null, null)))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).getErrorCode()).isEqualTo(ErrorCode.USER_SUSPENDED));
+        then(testUserProvisioner).should(never()).provisionCardIfAbsent(any(), any());
     }
 
     // ───────────── helper ─────────────

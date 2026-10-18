@@ -3,6 +3,7 @@ package com.ssafy.tax7i.auth.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.tax7i.auth.dto.IdentityVerifyResponse;
 import com.ssafy.tax7i.auth.dto.LoginResponse;
+import com.ssafy.tax7i.auth.dto.SimpleLoginResponse;
 import com.ssafy.tax7i.auth.service.AuthService;
 import com.ssafy.tax7i.config.TestSecurityConfig;
 import com.ssafy.tax7i.global.exception.BusinessException;
@@ -193,5 +194,29 @@ class AuthControllerTest {
                         .param("email", "custom@test.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").value("access-token"));
+    }
+
+    // ───────────── POST /api/auth/simple-login ─────────────
+
+    @Test
+    void simpleLogin_200_사용자정보와_토큰() throws Exception {
+        given(authService.simpleLogin(any()))
+                .willReturn(new SimpleLoginResponse("access-token", "refresh-token", 3L, "박싸피", "01033333333", true));
+
+        mockMvc.perform(post("/api/auth/simple-login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("phoneNumber", "01033333333", "name", "박싸피"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.accessToken").value("access-token"))
+                .andExpect(jsonPath("$.data.userId").value(3))
+                .andExpect(jsonPath("$.data.newUser").value(true));
+    }
+
+    @Test
+    void simpleLogin_400_전화번호형식오류() throws Exception {
+        mockMvc.perform(post("/api/auth/simple-login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("phoneNumber", "12345"))))
+                .andExpect(status().isBadRequest());
     }
 }

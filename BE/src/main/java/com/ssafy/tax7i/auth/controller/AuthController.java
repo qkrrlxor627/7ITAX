@@ -6,6 +6,8 @@ import com.ssafy.tax7i.auth.dto.IdentityVerifyResponse;
 import com.ssafy.tax7i.auth.dto.LoginResponse;
 import com.ssafy.tax7i.auth.dto.PinLoginRequest;
 import com.ssafy.tax7i.auth.dto.PinSetupRequest;
+import com.ssafy.tax7i.auth.dto.SimpleLoginRequest;
+import com.ssafy.tax7i.auth.dto.SimpleLoginResponse;
 import com.ssafy.tax7i.auth.dto.TokenReissueRequest;
 import com.ssafy.tax7i.auth.service.AuthService;
 import com.ssafy.tax7i.global.audit.Auditable;
@@ -102,6 +104,19 @@ public class AuthController {
         String accessToken = authorization.substring(7);
         authService.logout(accessToken);
         return ResponseEntity.ok(SuccessResponse.ok());
+    }
+
+    /**
+     * 간편 로그인(로컬·성능측정 전용, TEST_LOGIN_ENABLED=true일 때만). 전화번호만으로 사용자를 구분하며
+     * 처음 보는 번호면 사용자·계좌(500만원)·카드를 만들어 바로 결제해 볼 수 있게 한다
+     */
+    @PostMapping("/simple-login")
+    public ResponseEntity<SuccessResponse<SimpleLoginResponse>> simpleLogin(
+            @Valid @RequestBody SimpleLoginRequest request) {
+        if (!testLoginEnabled) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "간편 로그인이 비활성화되어 있습니다.");
+        }
+        return ResponseEntity.ok(SuccessResponse.of(authService.simpleLogin(request)));
     }
 
     @PostMapping("/test-login")

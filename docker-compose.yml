@@ -79,6 +79,9 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-ssafy}
       AI_SERVICE_BASE_URL: http://ai:8000
+      # 성능 측정 스위치: 실행 시 셸 변수로 덮어쓴다(예: AI_MOCK_ENABLED=true DB_POOL_MAX=20 docker compose up -d backend). docs/PERF_TEST.md
+      AI_MOCK_ENABLED: ${AI_MOCK_ENABLED:-false}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
       # 기본값 없음: 비어 있으면 BE가 기동 시 실패한다(약한 기본값 배포 방지, 기존 worker와 동일)
       # `:?` 필수 표기를 쓰지 않는 이유: compose 파일 전체에 적용돼 postgres·redis만 띄울 때도 .env를 요구하게 된다
       AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY}
