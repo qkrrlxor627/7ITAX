@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 public class PaymentService {
 
     private static final String QR_TOKEN_PREFIX = "qr-pay:";
+    private static final String QR_DONE_PREFIX = "qr-pay-done:";
     private static final String MERCHANT_QR_PREFIX = "qr-merchant:";
     private static final long QR_TOKEN_TTL_SECONDS = 300; // 5분
 
@@ -326,7 +327,8 @@ public class PaymentService {
     }
 
     public QrPaymentStatusResponse getQrPaymentStatus(Long userId, String token) {
-        Long paymentId = peekPaymentIdFromToken(token);
+        String doneId = redisTemplate.opsForValue().get(QR_DONE_PREFIX + token);
+        Long paymentId = doneId != null ? Long.parseLong(doneId) : peekPaymentIdFromToken(token);
         Payment payment = paymentRepository.findByIdAndUserId(paymentId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
@@ -518,6 +520,9 @@ public class PaymentService {
         if (paymentIdStr == null) {
             throw new BusinessException(ErrorCode.QR_TOKEN_EXPIRED);
         }
+        // 결제자 앱은 같은 토큰으로 상태를 폴링한다. 토큰이 지워지면 확정 직후 폴링이 QR_TOKEN_EXPIRED를 받아
+        // 성공한 결제를 "만료"로 표시하므로, 상태 조회 전용 표시를 남긴다(결제 확정 경로는 이 키를 보지 않는다)
+        redisTemplate.opsForValue().set(QR_DONE_PREFIX + token, paymentIdStr, QR_TOKEN_TTL_SECONDS, TimeUnit.SECONDS);
         return Long.parseLong(paymentIdStr);
     }
 
