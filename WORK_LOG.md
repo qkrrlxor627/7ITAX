@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-10-18: 시드 카드 결제 확정이 ACCOUNT_NOT_FOUND로 실패하던 버그 수정 + 사업자 카드 시드
+
+### 배경
+7단계 스모크(`scripts/smoke_payment_ledger.py`)를 처음 돌렸을 때 시드 유저 카드로 결제 확정이
+`POST /api/payments/1/capture → HTTP 404 {"errorCode":"ACCOUNT_NOT_FOUND"}`로 실패했다. 지시서 범위 밖의 기존 버그지만 완료 정의(스모크 통과)를 막는다.
+
+### 원인
+1. **출금계좌 미저장**: `CardDataInitializer`가 계좌를 `SsafyFinanceClient.createAccount`로 직접 만들었다. 로컬 원장 전환 후 이 메서드는
+   계좌번호만 발급하고 저장하지 않는다(`SsafyFinanceClient.java:47` 주석 "계좌 영속화는 AccountService가 담당한다").
+   그래서 `accounts` 0행인 채로 카드가 그 계좌번호를 출금계좌로 가졌고, 결제 확정 시
+   `SsafyCreditCardClient.debitWithdrawalAccount`(`findByAccountNoKeyForUpdate`)가 계좌를 못 찾았다.
+   → 시드 유저는 **어떤 결제도 확정할 수 없는 상태**였다
+2. **장부 대상 카드 없음**(1을 고친 뒤 드러남): 확정은 성공했지만 30초 안에 장부가 생기지 않았다. `PaymentService.java:529`가
+   `PaymentCapturedEvent.purpose`에 결제의 purpose가 아니라 **카드 유형**(`card.getCardType().name()`)을 넣고,
+   `BookEntryEventListener`는 BUSINESS만 장부를 만든다. 시드 카드 2장은 모두 PERSONAL이고, 사업자 카드 발급 API(`POST /api/cards`)는 OTP가 필요하다.
+   이벤트·리스너 주석이 모두 "사업자 카드 결제"라 의도된 설계로 보고 **도메인 로직은 바꾸지 않았다**(사용자 결정)
+
+### 작업 내역
+- `CardDataInitializer`: 계좌 생성을 `AccountService.createAccount(userId, new AccountCreateRequest(...))`로 변경 → `accounts`에 저장(데모 잔액 5,000,000)
+- `CardDataInitializer`: 두 번째 시드 유저(이싸피, `01022222222`)는 BUSINESS 카드·BUSINESS 계좌로 발급(사용자 결정)
+- `Tax7iApplicationTests`에 회귀 테스트 2개: 시드 카드의 출금계좌가 `accounts`에 있다 / BUSINESS 시드 카드가 있다
+
+### 결과
+- 회귀 테스트를 수정 전 코드로 돌리면 `2 tests completed, 1 failed`, 수정 후 통과 → 버그를 잡는 테스트임을 확인
+- `./gradlew test` → **tests=310 failures=0 errors=0 skipped=1** (308 + 신규 2)
+- 빈 DB 기동 후 `cards`: `1|PERSONAL|test-ci-01011111111`, `2|BUSINESS|test-ci-01022222222`
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 장부 생성 기준을 "카드 유형"이 아니라 "결제 purpose"로 바꿀지(결제마다 사용자가 고르는 purpose가 장부 생성에 쓰이지 않는다)는 도메인 결정이 필요해 남겨 둔다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/java/com/ssafy/tax7i/config/CardDataInitializer.java` | 계좌 저장 경로 수정, 2번 유저 사업자 카드 |
+| `BE/src/test/java/com/ssafy/tax7i/Tax7iApplicationTests.java` | 회귀 테스트 2개 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 6단계 — AI readiness 엔드포인트
 
 ### 배경

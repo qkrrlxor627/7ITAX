@@ -7,7 +7,10 @@ import com.ssafy.tax7i.banking.client.dto.SsafyCreateCreditCardResponse;
 import com.ssafy.tax7i.banking.client.dto.SsafyCreditCardProductListResponse;
 import com.ssafy.tax7i.banking.client.SsafyFinanceClient;
 import com.ssafy.tax7i.banking.client.dto.SsafyAccountListResponse;
-import com.ssafy.tax7i.banking.client.dto.SsafyCreateAccountResponse;
+import com.ssafy.tax7i.banking.dto.AccountCreateRequest;
+import com.ssafy.tax7i.banking.dto.AccountResponse;
+import com.ssafy.tax7i.banking.entity.AccountType;
+import com.ssafy.tax7i.banking.service.AccountService;
 import com.ssafy.tax7i.card.entity.Card;
 import com.ssafy.tax7i.card.entity.CardType;
 import com.ssafy.tax7i.card.repository.CardRepository;
@@ -33,6 +36,7 @@ public class CardDataInitializer implements CommandLineRunner {
     private final CardRepository cardRepository;
     private final SsafyCreditCardClient ssafyCreditCardClient;
     private final SsafyFinanceClient ssafyFinanceClient;
+    private final AccountService accountService;
 
     @Override
     @Transactional
@@ -46,6 +50,10 @@ public class CardDataInitializer implements CommandLineRunner {
         int targetUserCount = Math.min(users.size(), 2);
         for (int i = 0; i < targetUserCount; i++) {
             User user = users.get(i);
+            // 두 번째 유저는 사업자 카드로 발급한다. 장부 자동 생성은 카드 유형이 BUSINESS일 때만 동작하므로
+            // (PaymentService.publishPaymentCapturedEvent → BookEntryEventListener) 시드에 사업자 카드가 하나는 있어야
+            // 결제→장부 흐름을 OTP 없이 확인할 수 있다(scripts/smoke_payment_ledger.py)
+            boolean business = i == 1;
 
             List<Card> existingCards = cardRepository.findByUser_IdAndDeletedFalse(user.getId());
             if (!existingCards.isEmpty()) {
@@ -81,12 +89,12 @@ public class CardDataInitializer implements CommandLineRunner {
                 String withdrawalAccountNo;
                 if (accountList.rec() == null || accountList.rec().isEmpty()) {
                     log.info("[CardDataInitializer] 유저 {}의 계좌가 없어 수시입출금 계좌를 생성합니다.", user.getId());
-                    SsafyCreateAccountResponse accountResponse = ssafyFinanceClient.createAccount(userKey, DEFAULT_ACCOUNT_TYPE);
-                    if (accountResponse.rec() == null) {
-                        log.error("[CardDataInitializer] 유저 {} 계좌 생성 응답이 비어있습니다.", user.getId());
-                        continue;
-                    }
-                    withdrawalAccountNo = accountResponse.rec().accountNo();
+                    // 클라이언트는 계좌번호만 발급하고 영속화는 AccountService가 한다(SsafyFinanceClient.createAccount 주석).
+                    // 클라이언트를 직접 부르면 accounts 행이 없어 이 카드의 결제 확정이 ACCOUNT_NOT_FOUND로 실패한다
+                    AccountResponse account = accountService.createAccount(user.getId(),
+                            new AccountCreateRequest(business ? AccountType.BUSINESS : AccountType.PERSONAL,
+                                    DEFAULT_ACCOUNT_TYPE, null));
+                    withdrawalAccountNo = account.accountNumber();
                     log.info("[CardDataInitializer] 유저 {} 계좌 생성 완료: {}", user.getId(), withdrawalAccountNo);
                 } else {
                     withdrawalAccountNo = accountList.rec().get(0).accountNo();
@@ -104,8 +112,8 @@ public class CardDataInitializer implements CommandLineRunner {
 
                 Card card = Card.builder()
                         .user(user)
-                        .cardName(product.cardName() != null ? product.cardName() : "개인카드")
-                        .cardType(CardType.PERSONAL)
+                        .cardName(product.cardName() != null ? product.cardName() : (business ? "사업자카드" : "개인카드"))
+                        .cardType(business ? CardType.BUSINESS : CardType.PERSONAL)
                         .last4Digits(last4)
                         .cardNo(cardNo)
                         .cvc(rec.cvc())
