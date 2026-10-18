@@ -176,6 +176,24 @@ public class BookEntryService {
         return BookEntryResponse.from(entry);
     }
 
+    /**
+     * 결제 취소를 장부에 반영한다. 전액 취소면 장부 삭제, 부분취소면 남은 결제금액으로 금액 조정.
+     * 장부가 없으면(개인 카드 결제 등) 아무것도 하지 않는다
+     */
+    @CacheEvict(value = "entertainmentUsed", key = "#userId")
+    @Transactional
+    public void applyPaymentCancel(Long userId, Long paymentId, long remainingAmount) {
+        bookEntryRepository.findByPaymentId(paymentId).ifPresent(entry -> {
+            if (remainingAmount <= 0) {
+                bookEntryRepository.delete(entry);
+                log.info("결제 전액 취소로 장부 삭제: id={}, paymentId={}", entry.getId(), paymentId);
+            } else {
+                entry.applyPartialCancel(remainingAmount);
+                log.info("결제 부분취소 장부 반영: id={}, paymentId={}, remaining={}", entry.getId(), paymentId, remainingAmount);
+            }
+        });
+    }
+
     @CacheEvict(value = "entertainmentUsed", key = "#userId")
     @Transactional
     public BookEntryResponse createIncome(Long userId, IncomeCreateRequest request) {
