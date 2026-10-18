@@ -38,6 +38,59 @@ git 이력은 `Initial commit` + 본인 커밋뿐이라 **팀원별 기여는 �
 
 ---
 
+## 2026-10-18: 성능 테스트 시나리오 문서 + k6 스크립트 + 로컬 측정
+
+### 배경
+로컬과 배포 환경에서 기본 성능 테스트를 하려 했으나 저장소에 부하 시나리오·도구가 없었다(PRE_CICD가 참조하는 "IMPROVEMENT_PLAN 13번 k6"는 미작성).
+두 환경 결과를 비교하려면 시나리오·합격 기준을 문서로 고정해야 한다.
+
+### 작업 내역
+- `docs/PERF_TEST.md` 신규: 목적, 합격 기준(read p95<500ms·pay p95<1000ms·export p95<3000ms·오류<1%), 사용자 행동 모델(조회 65/결제 25/취소 5/PDF 4/장부 확인 1%),
+  프로필 6종(smoke·load·stress·spike·soak·contention), 로컬·배포(성능측정) 환경 실행법과 주의(운영 실서비스 금지, 부하 발생기 분리), 결과 해석, 결과 기록 표
+- `scripts/perf/tax7i.js`(k6): `PROFILE`·`BASE_URL`·`USERS`·`VUS`·`DURATION`·`CONTENTION`. `setup()`에서 간편 로그인으로 사용자(0107700xxxx)를 미리 만들고,
+  401/403이면 재로그인. 요청에 `flow` 태그를 달아 기준을 흐름별로 적용
+- `scripts/perf/run.sh`: k6를 `grafana/k6:0.54.0` 컨테이너로 실행(설치 불필요). BASE_URL 미지정 시 compose 네트워크 안 `backend:8080`
+- `scripts/perf/sample_metrics.py`: `/actuator/prometheus`에서 Hikari active/pending, 힙, CPU, GC, executor를 주기 기록(CSV) + 최대값 요약
+- `docker-compose.yml` backend `environment`에 `AI_MOCK_ENABLED: ${AI_MOCK_ENABLED:-false}`, `DB_POOL_MAX: ${DB_POOL_MAX:-10}` —
+  기존엔 `env_file`로만 넘겨 실행 시 셸 변수로 덮어쓸 수 없었다(기본 동작은 `.env` 값 그대로)
+- `scripts/perf/.gitignore`: `results/`(원시 결과는 커밋하지 않고 요약을 PERF_TEST.md 7절에 기록)
+
+### 결과
+- 측정 조건: `docker compose stop ai`, `AI_MOCK_ENABLED=true docker compose up -d backend` → 로그 `[MOCK AI] MockAiServiceClient 활성화`, `printenv` AI_MOCK_ENABLED=true·DB_POOL_MAX=10
+- smoke(VU 2, 30초): checks 87/87, http_req_failed 0/193, read p95 47.1ms, pay p95 46.4ms, export 1.13s(1건), 5.7 req/s → 통과
+- **load 1차(VU 50, 6.5분)**: k6 기준(p95)은 통과(exit 0)했지만 **실질 불합격**. 32.7 req/s, read p95 280ms·pay p95 127ms·export p95 1.84s,
+  그러나 **p99 ≈ 30초, 최대 60초 타임아웃**, 실패 81/12,875(0.62%), `ledger_missing` 3
+  - 서버 지표: Hikari **active 10/10 + pending 52가 CPU 0%인 채 30초씩 지속**(교착 후 Hikari 대기 한도 30초에 풀림), 힙 최대 약 2.1GB
+  - 로그: `Connection is not available` 283건, `카드 거래 기록 저장 실패 ... Could not open JPA EntityManager` **28건(기록 유실)**,
+    `캐시 조회 실패 cache=mccTaxRules ... Unrecognized field "merchantKeywordCondition"` 수천 건
+- **원인 1(풀 교착)**: 결제 트랜잭션(계좌 행 잠금 보유) 안에서 `CardTransactionSaveService.save`를 `REQUIRES_NEW`로 호출(`CardTransactionSaveService.java:20` 수정 전)
+  → 커넥션 1개를 쥔 채 2번째를 요구. 동시 결제가 풀 크기(10)만큼 몰리면 전원 대기. 부수 문제: 결제가 롤백돼도 기록은 커밋됨
+- **원인 2(캐시)**: `MccTaxRule`의 계산용 getter(`isMerchantKeywordCondition` 등)가 JSON 필드로 저장되나 역직렬화 실패 → 매번 DB 재조회 + WARN
+- **원인 3(비동기 실행기 위험)**: `@Async` 기본 실행기가 core 2·queue 50·`CallerRunsPolicy`(이름 `fcm-notify-`). 큐가 차면 요청 스레드가 커넥션을 쥔 채
+  `REQUIRES_NEW` 리스너를 실행해 같은 교착 가능. 1차 측정에서 큐 최대 26
+- **수정**: 카드 거래 기록을 `CardTransactionEvent` → `@Async @TransactionalEventListener(AFTER_COMMIT, fallbackExecution=true)`로 커밋 후 저장,
+  `CacheConfig` ObjectMapper `FAIL_ON_UNKNOWN_PROPERTIES` 끔, 실행기 core 4·max 8·queue 500(`ASYNC_CORE_SIZE`·`ASYNC_MAX_SIZE`·`ASYNC_QUEUE_CAPACITY`, 이름 `async-`)
+  - 테스트: `CardTransactionSaveServiceTest` 2개 신규, `PaymentServiceTest` 4곳을 이벤트 발행 검증으로 변경 → `./gradlew test` **326 통과 / 0 실패 / skipped 1**
+- 수정 후 load 재측정은 다음 항목에 기록한다(같은 시나리오·같은 DB, 단 1차 결제분만큼 데이터가 늘어난 상태)
+- `sample_metrics.py`의 `tomcat_busy`는 비어 있다(`server.tomcat.mbeanregistry.enabled` 미설정으로 지표 미노출)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 배포 환경 측정: 아직 CD·성능측정 환경이 없다(RELEASE URL도 죽은 주소). 문서 5-2와 `run.sh <URL>`로 준비만 했다
+- 톰캣 스레드 지표 노출, AI 챗봇 부하(외부 LLM 의존·비용) 측정
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `docs/PERF_TEST.md` | 신규 |
+| `scripts/perf/tax7i.js`, `run.sh`, `sample_metrics.py`, `.gitignore` | 신규 |
+| `docker-compose.yml` | backend 성능 측정 스위치 2개 |
+| `BE/.../card/event/CardTransactionEvent.java`(신규), `card/service/CardTransactionSaveService.java`, `payment/service/PaymentService.java` | 카드 거래 기록 커밋 후 비동기 |
+| `BE/.../config/CacheConfig.java`, `config/AsyncRetryConfig.java`, `resources/application.yaml` | 캐시 역직렬화, 비동기 실행기 |
+| `BE/src/test/.../card/service/CardTransactionSaveServiceTest.java`(신규), `payment/service/PaymentServiceTest.java` | 테스트 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: Swagger 도입 + 간편 로그인(BE·FE) + 앱 QR 결제 "만료" 오표시 수정 + 에뮬레이터 실검증
 
 ### 배경
