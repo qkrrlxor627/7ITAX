@@ -5,6 +5,87 @@
 
 ---
 
+## 2026-10-18: 결제 취소 버그 2건(BUG-A·B) + AI 챗봇 503 수정
+
+### 배경
+바로 아래 항목의 시나리오 점검에서 나온 실패 3건(S3·S9·S10)을 사용자 지시로 모두 수정했다. 브랜치 `fix/payment-cancel-and-chatbot`.
+
+### 작업 내역
+- **BUG-B(부분취소 전액 환불)**: `CardLedgerTransaction`에 `cancelledAmount`(nullable) + `cancel(long)`(남은 금액 상한, 0이면 CANCELLED) + `getRemainingBalance()`.
+  `SsafyCreditCardClient.cancelTransaction(..., cancelAmount)` 신설(취소액만 환불), `deleteTransaction`은 이에 위임. 청구서 월합계는 남은 금액 기준.
+  `PaymentService.cancel`이 `deleteTransaction` 대신 `cancelTransaction` 호출
+- **BUG-A(취소 장부 잔존)**: `PaymentCancelledEvent`에 `remainingAmount` 추가, `BookEntryEventListener.handlePaymentCancelled` →
+  `BookEntryService.applyPaymentCancel`(전액이면 삭제, 부분이면 `BookEntry.applyPartialCancel`로 금액·부가세 비율 조정, `entertainmentUsed` 캐시 무효화)
+- **챗봇**: 메인 모델 기본값 `claude-opus-4-8` → `claude-sonnet-4-6`(`ai/app/core/config.py`, `docker-compose.yml`, `ai/.env.example`, `ai/README.md`, `exec/포팅_매뉴얼.md`).
+  `ai/app/services/`(보호 경로)는 무수정. BE `ai.read-timeout` 10 → `${AI_READ_TIMEOUT:120}`(`.env.example`에 키 추가), FE `ApiClient.kt` readTimeout 30 → 120초
+- 테스트 8개 추가: `CardLedgerTransactionTest`(3), `PaymentServiceTest` 부분취소·이벤트 검증(1, 기존 `cancel_성공`은 `cancelTransaction` 스텁으로 갱신), `BookEntryServiceTest`(3), `BookEntryEventListenerTest`(1)
+- `CLAUDE.md` 테스트 기준선 310 → 318, `261018.md` 8절 추가
+
+### 결과
+- 모델 선택 근거(AI 컨테이너에서 raw API 호출, `temperature=0.7`): opus-4-8 **400** `temperature is deprecated`, opus-4-6·sonnet-4-6·haiku-4-5 200.
+  opus-4-6은 비교·계산형 질문이 29.3 / 90.5초 / `tenacity.RetryError[LLMTimeoutError]`(AI 내부 LLM 타임아웃 30초 초과), sonnet-4-6은 17.7 / 16.2 / 20.5초
+- BE 타임아웃: 수정 전 `Read timed out`(10초), 수정 후 BE 경유 25.6초(haiku)·20.2초(sonnet) 응답 성공
+- `./gradlew test` **318 통과 / 0 실패 / skipped 1**(41 클래스). `./scripts/verify_stack.sh` → `OK: backend healthy + 결제→장부 스모크 통과`. `docker compose config -q` 통과
+- E2E 시나리오 **10/10 PASS**: S3 전액 취소 → 환불 33,000·장부 GET 404, S9 33,000원 중 11,000 부분취소 → 환불 11,000·결제 CAPTURED·장부 expense 22,000/vat 2,000 → 잔액 취소 → 누적 33,000·CANCELLED·장부 404, S10 챗봇 통과
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 확정 직후(장부 생성 비동기 리스너 완료 전) 취소 시 경합: 취소 리스너가 장부를 못 찾고 뒤늦게 생성된 장부가 남을 수 있다
+- 카드 거래 내역 API(`getTransactionHistory`)는 원 결제금액을 그대로 보여 준다(부분취소액 미표시)
+- FE 타임아웃 변경은 Android 빌드 미확인. `chat_service.py`의 `temperature`·30초 타임아웃 자체는 보호 경로라 그대로
+- 스모크 취소 경로 추가, 401/403, JWT `jti`, INT-1
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/.../card/entity/CardLedgerTransaction.java` | 누적 취소액·부분취소 |
+| `BE/.../banking/client/SsafyCreditCardClient.java` | `cancelTransaction` 신설, 청구서 남은 금액 |
+| `BE/.../payment/service/PaymentService.java`, `payment/event/PaymentCancelledEvent.java` | 부분취소 원장 호출, `remainingAmount` |
+| `BE/.../bookentry/entity/BookEntry.java`, `service/BookEntryService.java`, `event/BookEntryEventListener.java` | 취소 장부 반영 |
+| `BE/src/main/resources/application.yaml`, `.env.example` | `AI_READ_TIMEOUT` |
+| `BE/src/test/...` (4개, 1개 신규) | 테스트 8개 |
+| `ai/app/core/config.py`, `ai/.env.example`, `ai/README.md`, `docker-compose.yml`, `exec/포팅_매뉴얼.md` | 메인 모델 sonnet-4-6 |
+| `FE/.../data/remote/ApiClient.kt` | readTimeout 120초 |
+| `CLAUDE.md`, `261018.md`, `WORK_LOG.md` | 갱신 |
+
+---
+
+## 2026-10-18: 카드 직접 결제 read-only 트랜잭션 버그 수정 + 대표 기능 시나리오 E2E 점검
+
+### 배경
+PRE_CICD 0~9단계 머지(`224c7d5`) 뒤 `CardService.java` 수정이 미커밋으로 남아 있었다. 이를 마무리하고, CI/CD 전 완성도를 실제 스택에서 대표 시나리오로 확인했다. 요약 문서는 `261018.md`.
+
+### 작업 내역
+- `CardService.payment()`/`cancelPayment()`에 `@Transactional` — 클래스 기본값 `readOnly = true`에 `SsafyCreditCardClient`의 `@Transactional`(REQUIRED)이 합류해 출금계좌 `PESSIMISTIC_WRITE` 조회가 실패하던 문제
+- compose 스택 대상 E2E 시나리오 9개 실행(스크립트는 세션 scratchpad, 저장소 미반영)
+- `261018.md` 신규: 진행 상태·DoD 판정·시나리오 결과·신규 버그·남은 일
+
+### 결과
+- 수정 전 이미지(`git stash` 후 `docker compose up -d --build backend`): `POST /api/cards/2/payment` → **HTTP 500**, 로그 `ERROR: cannot execute SELECT FOR NO KEY UPDATE in a read-only transaction`.
+  수정 후: 12,000원 차감 → `/transactions` 노출 → 취소 후 원복. H2 테스트에서는 재현되지 않는다
+- DoD: `./gradlew test` **310 통과 / 0 실패 / skipped 1**(40 클래스), `./scripts/verify_stack.sh` exit 0, `docker compose config -q` 통과
+- GitHub Actions(공개 API 조회): PR #4·main push 모두 success — be-test 147초, ai-test 87초, stack-smoke 124초(8단계 `[측정: ___]` 값)
+- BE 시나리오 S1~S9 **7 PASS / 2 FAIL**: 인증·사업자 결제→장부→세목 수정·확정·카드 직접 결제·개인카드 장부 미생성·P2P·세액 추정/신고서·내보내기 통과
+- **신규 버그 BUG-A**: 결제 취소 시 장부가 남는다. `PaymentCancelledEvent`(`PaymentService.java:159`) 리스너 0건. 취소된 payment #2·#36의 장부가 미확정 경비 5,000·33,000원으로 잔존
+- **신규 버그 BUG-B**: 부분 취소가 전액 환불된다. `PaymentService.java:150-153`이 취소 금액과 무관하게 `deleteTransaction`(원장 거래 전체 취소) 호출. 30,000원 결제 → 10,000원 부분취소 → 계좌 +30,000, 결제 CAPTURED·`cancelledAmount=10000`
+- **신규 버그 BUG-C(AI 챗봇)**: `docker compose up -d --build ai` → healthy, `/api/v1/health/ready` 200인데 `POST /api/chatbot` → **503** `AI_SERVICE_UNAVAILABLE`.
+  AI 로그 `anthropic.BadRequestError 400 '`temperature` is deprecated for this model.'` — `ai/app/services/chat_service.py:46-49`가 `claude-opus-4-8`에 `temperature=0.7` 전달.
+  같은 로그에 INT-1 재현(`Illegal header value b'Bearer '` → 개인화 생략). AI 로직 보호 경로라 미수정
+- 시나리오 최종 **7 PASS / 3 FAIL**(S10 챗봇 포함)
+- 동작 차이 기록: 미인증 요청은 401이 아니라 **403**(`AuthenticationEntryPoint` 미설정, QR pay 미인증도 403 — 2026-08-04 구역 [4]의 "401이 정상" 서술과 다름). JWT에 `jti`가 없어 같은 초 재로그인 시 동일 토큰 → 로그아웃 직후 재로그인 403. `/api/export/income-tax/pdf`는 간편장부 PDF 별칭(`ExportController.java:72-84`)
+
+### 확인했으나 이번 범위에서 제외한 항목
+- BUG-A·BUG-B 수정(취소 장부 처리 방식·부분 환불 원장 연산은 도메인 결정 필요), 스모크에 취소 경로 추가, 401/403 정리, `jti` 추가
+- gradle test가 다시 쓴 `docs/samples/*` 6개는 `git checkout -- docs/samples`로 되돌림
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `BE/src/main/java/com/ssafy/tax7i/card/service/CardService.java` | `payment`/`cancelPayment`에 `@Transactional` |
+| `261018.md` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: PRE_CICD 9단계 — 하네스(훅·검증 에이전트) + CLAUDE.md 갱신
 
 ### 배경
