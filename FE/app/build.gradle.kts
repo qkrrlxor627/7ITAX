@@ -22,7 +22,12 @@ android {
     }
 
     buildTypes {
+        // 간편 로그인(전화번호만으로 로그인, BE TEST_LOGIN_ENABLED=true 필요). 운영 빌드는 본인인증·PIN 흐름
+        debug {
+            buildConfigField("boolean", "SIMPLE_LOGIN", "true")
+        }
         release {
+            buildConfigField("boolean", "SIMPLE_LOGIN", "false")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

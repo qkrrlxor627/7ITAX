@@ -8,11 +8,14 @@ import com.ssafy.seveniTax.data.model.auth.ConsentRequest
 import com.ssafy.seveniTax.data.model.auth.LoginRequest
 import com.ssafy.seveniTax.data.model.auth.ReissueRequest
 import com.ssafy.seveniTax.data.model.auth.SetupPinRequest
+import com.ssafy.seveniTax.data.model.auth.SimpleLoginRequest
+import com.ssafy.seveniTax.data.model.auth.SimpleLoginResponse
 import com.ssafy.seveniTax.data.model.auth.TokenResponse
 import com.ssafy.seveniTax.data.model.auth.VerifyIdentityRequest
 import com.ssafy.seveniTax.data.model.auth.VerifyIdentityResponse
 import com.ssafy.seveniTax.data.model.common.ApiResponse
 import com.ssafy.seveniTax.data.remote.AuthApi
+import com.ssafy.seveniTax.data.remote.PayApi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONObject
 import retrofit2.Response
@@ -20,6 +23,7 @@ import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
+    private val payApi: PayApi,
     private val secureStorage: SecureStorage,
     @param:ApplicationContext private val context: Context
 ) : AuthRepository {
@@ -60,6 +64,21 @@ class AuthRepositoryImpl @Inject constructor(
         val body = response.body() ?: throw Exception(extractErrorMessage(response, "로그인에 실패했습니다."))
         saveIssuedTokens(body.data)
         return body
+    }
+
+    override suspend fun simpleLogin(phoneNumber: String, name: String?): SimpleLoginResponse {
+        val response = authApi.simpleLogin(SimpleLoginRequest(phoneNumber = phoneNumber, name = name))
+        val data = response.body()?.data
+            ?: throw Exception(extractErrorMessage(response, "로그인에 실패했습니다."))
+        // 이전 사용자 정보가 섞이지 않도록 비우고 새로 저장
+        clearSession()
+        saveTokens(data.accessToken, data.refreshToken)
+        saveUserInfo(data.userId, data.phoneNumber, data.name)
+        // 페이 가입 여부는 기기 로컬 플래그라 세션을 비우면 사라진다. 서버의 결제 비밀번호 등록 여부로 복원
+        // (복원하지 않으면 로그인할 때마다 페이 가입을 다시 하게 되고 계좌가 계속 늘어난다)
+        val payRegistered = runCatching { payApi.getPayPinStatus().body()?.data?.registered }.getOrNull() == true
+        secureStorage.setPayEnrolled(payRegistered)
+        return data
     }
 
     override suspend fun reissue(refreshToken: String): ApiResponse<TokenResponse> {

@@ -284,6 +284,21 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    /** 간편 로그인(DEBUG 빌드): 전화번호만으로 사용자 구분. 처음 보는 번호면 BE가 계좌·사업자 카드까지 만든다 */
+    fun simpleLogin(phoneNumber: String, name: String, onSuccess: () -> Unit) = viewModelScope.launch {
+        _uiState.update { it.copy(isLoading = true, errorMessage = "") }
+        try {
+            authRepository.simpleLogin(phoneNumber.filter(Char::isDigit), name.trim().ifBlank { null })
+            _uiState.update { it.copy(isLoading = false) }
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e("AuthViewModel", "simpleLogin failed", e)
+            _uiState.update { it.copy(isLoading = false, errorMessage = e.message ?: "로그인에 실패했습니다.") }
+        }
+    }
+
+    fun getStoredPhoneNumber(): String = authRepository.getStoredPhoneNumber().orEmpty()
+
     fun resetForPinSetup() {
         authRepository.clearSession()
         _uiState.update { AuthUiState() }

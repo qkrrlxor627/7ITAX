@@ -3,6 +3,8 @@ package com.ssafy.seveniTax.data.remote
 import com.ssafy.seveniTax.data.model.auth.LoginRequest
 import com.ssafy.seveniTax.data.model.auth.ReissueRequest
 import com.ssafy.seveniTax.data.model.auth.SetupPinRequest
+import com.ssafy.seveniTax.data.model.auth.SimpleLoginRequest
+import com.ssafy.seveniTax.data.model.auth.SimpleLoginResponse
 import com.ssafy.seveniTax.data.model.auth.TokenResponse
 import com.ssafy.seveniTax.data.model.auth.VerifyIdentityRequest
 import com.ssafy.seveniTax.data.model.auth.VerifyIdentityResponse
@@ -25,6 +27,9 @@ interface AuthApi {
 
     @POST("auth/login")
     suspend fun login(@Body body: LoginRequest): Response<ApiResponse<TokenResponse>>
+
+    @POST("auth/simple-login")
+    suspend fun simpleLogin(@Body body: SimpleLoginRequest): Response<ApiResponse<SimpleLoginResponse>>
 
     @POST("auth/reissue")
     suspend fun reissue(@Body body: ReissueRequest): Response<ApiResponse<TokenResponse>>

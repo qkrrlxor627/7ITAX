@@ -1,5 +1,6 @@
 package com.ssafy.seveniTax.ui.auth
 
+import com.ssafy.seveniTax.BuildConfig
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -40,6 +41,13 @@ fun SplashScreen(
     }
 
     LaunchedEffect(autoLoginResult) {
+        // DEBUG 빌드는 항상 간편 로그인 화면으로(마지막 번호가 미리 채워짐)
+        if (BuildConfig.SIMPLE_LOGIN && autoLoginResult != AutoLoginResult.NONE) {
+            navController.navigate(Route.SimpleLogin.path) {
+                popUpTo(Route.Splash.path) { inclusive = true }
+            }
+            return@LaunchedEffect
+        }
         when (autoLoginResult) {
             AutoLoginResult.SUCCESS -> navController.navigate(Route.PinLogin.path) {
                 popUpTo(Route.Splash.path) { inclusive = true }
