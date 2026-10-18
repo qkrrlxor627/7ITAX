@@ -172,7 +172,8 @@ function ledgerSample() {
   const latest = res.status === 200 ? res.json('data.content.0') : null;
   if (!latest || latest.status !== 'CAPTURED') return;
   sleep(2);
-  const page = call('GET', `${BASE_URL}/api/book-entries?size=50`, null, 'verify');
+  // 기본 정렬이 entryDate뿐이라 같은 날 장부끼리는 순서가 없다 → id 내림차순으로 최신 장부를 본다
+  const page = call('GET', `${BASE_URL}/api/book-entries?size=50&sort=id,desc`, null, 'verify');
   const found = page.status === 200 && (page.json('data.content') || []).some((e) => e.paymentId === latest.paymentId);
   if (!found) ledgerMissing.add(1);
 }
