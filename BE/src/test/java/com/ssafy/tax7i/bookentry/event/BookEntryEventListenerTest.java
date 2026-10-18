@@ -6,6 +6,7 @@ import com.ssafy.tax7i.bookentry.entity.EntryType;
 import com.ssafy.tax7i.bookentry.service.BookEntryService;
 import com.ssafy.tax7i.classification.dto.ClassificationResult;
 import com.ssafy.tax7i.classification.service.TaxClassificationService;
+import com.ssafy.tax7i.payment.event.PaymentCancelledEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -79,5 +80,12 @@ class BookEntryEventListenerTest {
         eventListener.handlePaymentCaptured(event);
 
         then(bookEntryService).should().create(eq(1L), any(BookEntryCreateRequest.class));
+    }
+
+    @Test
+    void 결제취소_장부반영_위임() {
+        eventListener.handlePaymentCancelled(new PaymentCancelledEvent(4L, 1L, 30000L, 20000L, "스타벅스"));
+
+        then(bookEntryService).should().applyPaymentCancel(1L, 4L, 20000L);
     }
 }

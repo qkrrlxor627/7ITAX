@@ -18,6 +18,7 @@ import com.ssafy.tax7i.payment.entity.Payment;
 import com.ssafy.tax7i.payment.entity.PaymentMethod;
 import com.ssafy.tax7i.payment.entity.PaymentPurpose;
 import com.ssafy.tax7i.payment.entity.PaymentStatus;
+import com.ssafy.tax7i.payment.event.PaymentCancelledEvent;
 import com.ssafy.tax7i.payment.repository.PaymentRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -165,7 +166,7 @@ class PaymentServiceTest {
         setField(payment, "ssafyTransactionUniqueNo", 100L);
 
         given(paymentRepository.findByIdAndUserIdWithFetch(1L, 1L)).willReturn(Optional.of(payment));
-        given(ssafyCreditCardClient.deleteTransaction("user-key", "1005518816096479", "725", 100L))
+        given(ssafyCreditCardClient.cancelTransaction("user-key", "1005518816096479", "725", 100L, 10000L))
                 .willReturn(new SsafyDeleteCreditCardTransactionResponse(
                         successHeader(),
                         new SsafyDeleteCreditCardTransactionResponse.DeletedTransactionRec(100L, "CANCELLED")));
@@ -176,6 +177,24 @@ class PaymentServiceTest {
         assertThat(response.status()).isEqualTo(PaymentStatus.CANCELLED);
         assertThat(response.cancelledAmount()).isEqualTo(10000L);
         verify(cardTransactionSaveService).save(any(), any(), any(), any(), any());
+        verify(eventPublisher).publishEvent(new PaymentCancelledEvent(1L, 1L, 10000L, 0L, "스타벅스"));
+    }
+
+    @Test
+    void cancel_부분취소_취소금액만_원장취소하고_남은금액을_이벤트로() {
+        User user = createUser(1L, "user-key");
+        Card card = createCard(1L, user);
+        Payment payment = createPayment(1L, user, card, 30000L, PaymentStatus.CAPTURED);
+        setField(payment, "ssafyTransactionUniqueNo", 100L);
+
+        given(paymentRepository.findByIdAndUserIdWithFetch(1L, 1L)).willReturn(Optional.of(payment));
+
+        PaymentCancelResponse response = paymentService.cancel(1L, 1L, new PaymentCancelRequest(10000L, "부분취소"));
+
+        assertThat(response.status()).isEqualTo(PaymentStatus.CAPTURED);
+        assertThat(response.cancelledAmount()).isEqualTo(10000L);
+        verify(ssafyCreditCardClient).cancelTransaction("user-key", "1005518816096479", "725", 100L, 10000L);
+        verify(eventPublisher).publishEvent(new PaymentCancelledEvent(1L, 1L, 30000L, 20000L, "스타벅스"));
     }
 
     @Test

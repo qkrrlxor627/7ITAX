@@ -188,24 +188,34 @@ public class SsafyCreditCardClient {
                 successHeader("inquireCreditCardTransactionList", newTransactionUniqueNo()), recs);
     }
 
+    /**
+     * 남은 금액 전액 취소
+     */
     @Transactional
     public SsafyDeleteCreditCardTransactionResponse deleteTransaction(String userKey, String cardNo,
                                                                       String cvc, Long transactionUniqueNo) {
+        return cancelTransaction(userKey, cardNo, cvc, transactionUniqueNo, Long.MAX_VALUE);
+    }
+
+    /**
+     * 부분 취소. 취소한 금액만큼만 출금계좌로 환불하고, 남은 금액이 0이 되면 거래를 CANCELLED로 바꾼다
+     */
+    @Transactional
+    public SsafyDeleteCreditCardTransactionResponse cancelTransaction(String userKey, String cardNo, String cvc,
+                                                                      Long transactionUniqueNo, long cancelAmount) {
         CardLedgerTransaction txn = cardLedgerTransactionRepository
                 .findByTransactionUniqueNo(String.valueOf(transactionUniqueNo))
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드 결제 내역을 찾을 수 없습니다."));
 
-        if (!CardLedgerTransaction.STATUS_CANCELLED.equals(txn.getStatus())) {
-            txn.cancel();
-            // 직불 모델: 취소 시 출금계좌로 환불(입금).
-            cardRepository.findByCardNoKey(txn.getCardNoKey())
-                    .ifPresent(card -> refundWithdrawalAccount(card, txn.getPaymentBalance(), "카드결제취소"));
-        }
+        long refund = txn.cancel(cancelAmount);
+        // 직불 모델: 취소 시 출금계좌로 환불(입금).
+        cardRepository.findByCardNoKey(txn.getCardNoKey())
+                .ifPresent(card -> refundWithdrawalAccount(card, refund, "카드결제취소"));
 
         return new SsafyDeleteCreditCardTransactionResponse(
                 successHeader("deleteTransaction", newTransactionUniqueNo()),
                 new SsafyDeleteCreditCardTransactionResponse.DeletedTransactionRec(
-                        transactionUniqueNo, CardLedgerTransaction.STATUS_CANCELLED)
+                        transactionUniqueNo, txn.getStatus())
         );
     }
 
@@ -220,13 +230,13 @@ public class SsafyCreditCardClient {
         LocalDateTime rangeStart = start.atDay(1).atStartOfDay();
         LocalDateTime rangeEnd = end.atEndOfMonth().atTime(LocalTime.MAX);
 
-        // 월별 결제 합계 집계 (취소 건 제외).
+        // 월별 결제 합계 집계 (취소 건 제외, 부분취소는 남은 금액만).
         Map<String, Long> monthlyTotals = new TreeMap<>();
         cardLedgerTransactionRepository
                 .findByCardNoKeyAndTransactedAtBetweenOrderByTransactedAtDesc(card.getCardNoKey(), rangeStart, rangeEnd)
                 .stream()
                 .filter(t -> CardLedgerTransaction.STATUS_SUCCESS.equals(t.getStatus()))
-                .forEach(t -> monthlyTotals.merge(t.getTransactedAt().format(MONTH_FMT), t.getPaymentBalance(), Long::sum));
+                .forEach(t -> monthlyTotals.merge(t.getTransactedAt().format(MONTH_FMT), t.getRemainingBalance(), Long::sum));
 
         // 조회 범위 내 모든 월에 대해 항목 생성 (결제 없는 월은 0원).
         Map<String, Long> filled = new LinkedHashMap<>();

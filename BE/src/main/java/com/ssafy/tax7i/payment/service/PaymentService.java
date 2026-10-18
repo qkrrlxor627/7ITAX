@@ -149,8 +149,9 @@ public class PaymentService {
         String userKey = getUserKey(user);
 
         if (payment.getSsafyTransactionUniqueNo() != null) {
-            ssafyCreditCardClient.deleteTransaction(
-                    userKey, card.getCardNo(), card.getCvc(), payment.getSsafyTransactionUniqueNo());
+            // 부분취소는 취소 금액만 환불해야 한다(전체 거래 취소 시 전액이 환불됨)
+            ssafyCreditCardClient.cancelTransaction(
+                    userKey, card.getCardNo(), card.getCvc(), payment.getSsafyTransactionUniqueNo(), cancelAmount);
         }
 
         payment.cancel(cancelAmount, request.reason());
@@ -160,6 +161,7 @@ public class PaymentService {
                 payment.getId(),
                 payment.getUser().getId(),
                 payment.getAmount(),
+                payment.getAmount() - payment.getCancelledAmount(),
                 payment.getMerchantName()
         ));
 

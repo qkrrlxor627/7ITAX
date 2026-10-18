@@ -8,6 +8,7 @@ import com.ssafy.tax7i.classification.dto.ClassificationRequest;
 import com.ssafy.tax7i.classification.dto.ClassificationResult;
 import com.ssafy.tax7i.classification.entity.TaxCategory;
 import com.ssafy.tax7i.classification.service.TaxClassificationService;
+import com.ssafy.tax7i.payment.event.PaymentCancelledEvent;
 import com.ssafy.tax7i.tax.service.TaxParameterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -98,6 +99,21 @@ public class BookEntryEventListener {
         } catch (Exception e) {
             log.error("장부 자동 생성 실패: paymentId={}, userId={}, amount={}, error={}",
                     event.paymentId(), event.userId(), event.amount(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 결제 취소 → 장부 삭제(전액) 또는 금액 조정(부분). 취소된 지출이 경비로 남아 세액이 과소 계산되는 것을 막는다
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handlePaymentCancelled(PaymentCancelledEvent event) {
+        try {
+            bookEntryService.applyPaymentCancel(event.userId(), event.paymentId(), event.remainingAmount());
+        } catch (Exception e) {
+            log.error("결제 취소 장부 반영 실패: paymentId={}, userId={}, remaining={}, error={}",
+                    event.paymentId(), event.userId(), event.remainingAmount(), e.getMessage(), e);
         }
     }
 

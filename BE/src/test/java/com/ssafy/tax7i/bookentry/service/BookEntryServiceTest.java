@@ -303,6 +303,44 @@ class BookEntryServiceTest {
         assertThat(count).isEqualTo(5);
     }
 
+    // ───────────── applyPaymentCancel ─────────────
+
+    @Test
+    void applyPaymentCancel_전액취소_장부삭제() {
+        BookEntry entry = createEntry(1L, 1L, true);
+        given(bookEntryRepository.findByPaymentId(1L)).willReturn(Optional.of(entry));
+
+        bookEntryService.applyPaymentCancel(1L, 1L, 0L);
+
+        org.mockito.Mockito.verify(bookEntryRepository).delete(entry);
+    }
+
+    @Test
+    void applyPaymentCancel_부분취소_남은금액으로_부가세비율유지() {
+        BookEntry entry = BookEntry.builder()
+                .userId(1L).paymentId(2L).entryDate(LocalDate.of(2026, 3, 16))
+                .entryType(EntryType.EXPENSE)
+                .expenseAmount(33000L).vatAmount(3000L).supplyPrice(30000L)
+                .build();
+        given(bookEntryRepository.findByPaymentId(2L)).willReturn(Optional.of(entry));
+
+        bookEntryService.applyPaymentCancel(1L, 2L, 22000L);
+
+        assertThat(entry.getExpenseAmount()).isEqualTo(22000L);
+        assertThat(entry.getVatAmount()).isEqualTo(2000L);
+        assertThat(entry.getSupplyPrice()).isEqualTo(20000L);
+        org.mockito.Mockito.verify(bookEntryRepository, org.mockito.Mockito.never()).delete(any(BookEntry.class));
+    }
+
+    @Test
+    void applyPaymentCancel_장부없으면_무시() {
+        given(bookEntryRepository.findByPaymentId(3L)).willReturn(Optional.empty());
+
+        bookEntryService.applyPaymentCancel(1L, 3L, 0L);
+
+        org.mockito.Mockito.verify(bookEntryRepository, org.mockito.Mockito.never()).delete(any(BookEntry.class));
+    }
+
     // ───────────── helpers ─────────────
 
     private BookEntry createEntry(Long id, Long userId, boolean confirmed) {

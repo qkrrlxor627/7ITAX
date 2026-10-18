@@ -55,6 +55,9 @@ public class CardLedgerTransaction extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDateTime transactedAt;
 
+    /** 누적 취소액. 부분취소 도입 전 행은 null(0으로 취급) */
+    private Long cancelledAmount;
+
     @Builder
     public CardLedgerTransaction(String cardNoKey, String transactionUniqueNo, Long merchantId, String merchantName,
                                  String categoryId, String categoryName, long paymentBalance, String status,
@@ -70,7 +73,27 @@ public class CardLedgerTransaction extends BaseTimeEntity {
         this.transactedAt = transactedAt;
     }
 
-    public void cancel() {
-        this.status = STATUS_CANCELLED;
+    /**
+     * 취소되지 않고 남은 결제 금액. CANCELLED면 0
+     */
+    public long getRemainingBalance() {
+        if (STATUS_CANCELLED.equals(status)) {
+            return 0L;
+        }
+        return paymentBalance - (cancelledAmount != null ? cancelledAmount : 0L);
+    }
+
+    /**
+     * 취소액을 누적한다. 남은 금액을 넘는 요청은 남은 금액까지만 취소하고, 남은 금액이 0이 되면 CANCELLED로 바꾼다.
+     *
+     * @return 실제로 취소된(환불할) 금액
+     */
+    public long cancel(long amount) {
+        long refund = Math.min(Math.max(amount, 0L), getRemainingBalance());
+        this.cancelledAmount = (cancelledAmount != null ? cancelledAmount : 0L) + refund;
+        if (getRemainingBalance() <= 0) {
+            this.status = STATUS_CANCELLED;
+        }
+        return refund;
     }
 }

@@ -133,6 +133,24 @@ public class BookEntry extends BaseTimeEntity {
         this.isBusinessExpense = true;
     }
 
+    /**
+     * 결제 부분취소 반영: 금액 필드를 남은 결제금액(부가세 포함)으로 맞추고 부가세는 기존 비율대로 줄인다
+     */
+    public void applyPartialCancel(long remainingAmount) {
+        long originalAmount = incomeAmount + expenseAmount + fixedAssetAmount;
+        if (originalAmount <= 0 || remainingAmount >= originalAmount) {
+            return;
+        }
+        long newVat = Math.round((double) vatAmount * remainingAmount / originalAmount);
+        switch (entryType) {
+            case INCOME -> this.incomeAmount = remainingAmount;
+            case EXPENSE -> this.expenseAmount = remainingAmount;
+            case ASSET -> this.fixedAssetAmount = remainingAmount;
+        }
+        this.vatAmount = newVat;
+        this.supplyPrice = remainingAmount - newVat;
+    }
+
     public void updateNote(String note) {
         this.note = (note != null && note.isBlank()) ? null : note;
     }

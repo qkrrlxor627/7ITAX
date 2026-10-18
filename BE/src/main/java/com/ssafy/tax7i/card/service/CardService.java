@@ -147,7 +147,9 @@ public class CardService {
 
     /**
      * 카드 결제 (SSAFY 신용카드 결제 API)
+     * 로컬 원장이 출금계좌를 행 잠금(SELECT ... FOR UPDATE)으로 차감하므로 클래스 기본값(readOnly)이 아닌 쓰기 트랜잭션이어야 한다
      */
+    @Transactional
     public CardPaymentResponse payment(Long userId, Long cardId, CardPaymentRequest request) {
         User user = getUser(userId);
         Card card = getCardWithOwnership(userId, cardId);
@@ -169,8 +171,9 @@ public class CardService {
     }
 
     /**
-     * 카드 결제 취소
+     * 카드 결제 취소 (출금계좌 환불 — 쓰기 트랜잭션)
      */
+    @Transactional
     public void cancelPayment(Long userId, Long cardId, CancelPaymentRequest request) {
         User user = getUser(userId);
         Card card = getCardWithOwnership(userId, cardId);

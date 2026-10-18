@@ -45,7 +45,7 @@
 docker compose up -d postgres redis
 cd BE   # JDK 17 필수(시스템 기본 JDK로는 Gradle 구동 불가)
 AES_ENCRYPTION_KEY=<키> JWT_SECRET=<32바이트+> REDIS_PASSWORD=ssafy ./gradlew bootRun
-./gradlew test          # 310개 통과가 기준선 (2026-10-18, skipped 1)
+./gradlew test          # 318개 통과가 기준선 (2026-10-18 결제 취소 수정 후, skipped 1)
 
 # AI — 최초 기동 시 bge-m3 약 2GB 다운로드 + Chroma 자동 인덱싱으로 매우 느림
 cd ai && uvicorn app.main:app
