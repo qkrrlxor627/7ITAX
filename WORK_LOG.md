@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-10-18: PRE_CICD 7단계 — 한 번에 검증하는 스크립트
+
+### 배경
+"컨테이너로 띄워 핵심 흐름이 도는지"를 확인하는 단일 명령이 없었다(`docs/PRE_CICD.md` 7단계).
+지시서는 `scripts/smoke_payment_ledger.py`를 "수정"하라고 했지만 저장소 전 이력에 없는 파일이라 새로 작성했다(사용자 결정).
+
+### 작업 내역
+- `scripts/verify_stack.sh` 신규(지시서 708-742행 그대로): `.env` 확인 → `docker compose up -d --build postgres redis backend` → healthy 대기(최대 5분) → 스모크
+- `scripts/smoke_payment_ledger.py` 신규(표준 라이브러리만):
+  `POST /api/auth/test-login?email=01022222222` → `GET /api/cards`에서 BUSINESS 카드 → `GET /api/cards/merchants` →
+  `POST /api/payments/authorize`(BUSINESS, OFFLINE) → `POST /api/payments/{id}/capture`(CAPTURED 확인) →
+  `GET /api/book-entries?size=50`에서 같은 `paymentId` 장부를 최대 30초 폴링(장부는 `@Async` AFTER_COMMIT 리스너가 만든다).
+  실패하면 단계명·HTTP 코드·응답 본문을 출력하고 exit 1. docstring에 `TEST_LOGIN_ENABLED=true`, 빈 DB 시드 전제 명시
+- `FE/docs/merchant-test.html:50` 기본 서버 `https://j14c203.p.ssafy.io/api` → `http://localhost:8080/api`
+- 루트 `.gitattributes` 신규: `*.sh text eol=lf`(CRLF로 체크아웃되면 리눅스 CI에서 `bash\r`로 실패). `verify_stack.sh`는 `git update-index --chmod=+x`로 100755
+
+### 결과
+- 첫 실행은 스모크 실패 → 기존 버그 2건 발견·수정(바로 아래 "시드 카드 결제 확정" 항목)
+- 수정 후 빈 DB에서 `./scripts/verify_stack.sh` → **exit 0, 190초**(이미지 재빌드 포함), `OK: backend healthy + 결제→장부 스모크 통과`
+- 스모크 단독 재실행: `OK: paymentId=2 amount=10691 → bookEntryId=2 category=접대비`
+- 실패 경로: `JWT_SECRET= ./scripts/verify_stack.sh` → **exit 1, 327초**, `FAIL: backend 상태=unhealthy (healthy가 아님)` + backend 로그 200줄
+  (원인 `io.jsonwebtoken.security.WeakKeyException: The specified key byte array is 0 bits`가 로그에 포함). 셸 변수가 compose 치환에서 `.env`보다 우선해 `.env`를 건드리지 않고 재현
+- `git ls-files --eol scripts/verify_stack.sh` → `i/lf w/lf attr/text eol=lf`
+
+### 확인했으나 이번 범위에서 제외한 항목
+- 실패 시 healthy 대기 루프가 `unhealthy`에서 멈추지 않고 5분을 다 기다린다(`restart: on-failure`라 상태가 `exited`로 가지 않음). 지시서 스크립트 그대로 두고 기록만 한다
+
+### 변경된 파일 목록
+| 파일 | 변경 |
+|---|---|
+| `scripts/verify_stack.sh` | 신규(실행 권한) |
+| `scripts/smoke_payment_ledger.py` | 신규 |
+| `FE/docs/merchant-test.html` | 기본 서버 URL 변경 |
+| `.gitattributes` | 신규 |
+| `WORK_LOG.md` | 본 항목 추가 |
+
+---
+
 ## 2026-10-18: 시드 카드 결제 확정이 ACCOUNT_NOT_FOUND로 실패하던 버그 수정 + 사업자 카드 시드
 
 ### 배경
