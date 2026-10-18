@@ -29,6 +29,9 @@ public class CacheConfig implements CachingConfigurer {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 엔티티의 계산용 getter(MccTaxRule.isMerchantKeywordCondition 등)가 JSON 필드로 저장되는데 역직렬화할 곳이 없어
+        // 매 조회가 실패 → DB 재조회 + WARN 로그 폭주였다(부하 6.5분에 수천 건). 모르는 필드는 무시한다
+        objectMapper.disable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
                 ObjectMapper.DefaultTyping.NON_FINAL

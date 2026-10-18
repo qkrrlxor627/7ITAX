@@ -10,7 +10,7 @@ import com.ssafy.tax7i.bookentry.event.PaymentCapturedEvent;
 import com.ssafy.tax7i.card.entity.Card;
 import com.ssafy.tax7i.card.entity.CardTransactionType;
 import com.ssafy.tax7i.card.repository.CardRepository;
-import com.ssafy.tax7i.card.service.CardTransactionSaveService;
+import com.ssafy.tax7i.card.event.CardTransactionEvent;
 import com.ssafy.tax7i.global.exception.BusinessException;
 import com.ssafy.tax7i.global.exception.ErrorCode;
 import com.ssafy.tax7i.payment.dto.*;
@@ -55,7 +55,6 @@ public class PaymentService {
     private final SsafyCreditCardClient ssafyCreditCardClient;
     private final RedisTemplate<String, String> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
-    private final CardTransactionSaveService cardTransactionSaveService;
     private final ObjectMapper objectMapper;
 
     private final Map<String, SseEmitter> qrEmitters = new ConcurrentHashMap<>();
@@ -538,12 +537,9 @@ public class PaymentService {
         ));
     }
 
+    /** 카드 거래 기록은 커밋 후 비동기로 저장한다(CardTransactionSaveService 주석: 결제 중 두 번째 커넥션 요구 → 풀 교착) */
     private void saveCardTransaction(Card card, CardTransactionType type, Long amount, String description, Long paymentBalance) {
-        try {
-            cardTransactionSaveService.save(card, type, amount, description, paymentBalance);
-        } catch (Exception e) {
-            log.warn("카드 거래 기록 저장 실패 (결제는 정상): cardId={}, error={}", card.getId(), e.getMessage());
-        }
+        eventPublisher.publishEvent(new CardTransactionEvent(card.getId(), type, amount, description, paymentBalance));
     }
 
     private String getUserKey(User user) {

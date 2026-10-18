@@ -51,6 +51,10 @@ app:
     enabled: ${APP_SEED_ENABLED:true}        # 기동 시 더미 유저·카드 생성(CardDataInitializer)
   scheduling:
     enabled: ${APP_SCHEDULING_ENABLED:true}  # 인스턴스 2대 이상이면 1대만 true
+  async:                                     # @Async 실행기(장부 생성·카드 거래 기록 등). AsyncRetryConfig
+    core-size: ${ASYNC_CORE_SIZE:4}
+    max-size: ${ASYNC_MAX_SIZE:8}
+    queue-capacity: ${ASYNC_QUEUE_CAPACITY:500}
 
 tax:
   office-code: "0305"
