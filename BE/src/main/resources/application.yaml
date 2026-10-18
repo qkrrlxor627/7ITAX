@@ -58,7 +58,7 @@ tax:
 ai:
   base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}
   connect-timeout: 3
-  read-timeout: 10
+  read-timeout: ${AI_READ_TIMEOUT:120}   # 초. Opus 답변은 RAG·쿼리 재작성 포함 30~90초 걸린다(2026-10-18 실측)
   mock:
     enabled: ${AI_MOCK_ENABLED:false}        # true면 AI 서버 없이 MockAiServiceClient 사용(BE 단독 성능 측정용)
 

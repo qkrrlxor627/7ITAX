@@ -44,7 +44,7 @@ object ApiClient {
             }
             .addInterceptor(logging)
             .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS) // AI 챗봇 응답이 30~90초 걸린다(BE ai.read-timeout과 맞춤)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }

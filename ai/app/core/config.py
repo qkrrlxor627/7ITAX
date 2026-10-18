@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
 
     # 모델 티어링 (standard=메인 챗봇, mini=쿼리 재작성·분류 설명)
-    claude_model_opus: str = "claude-opus-4-8"
+    # 변수명은 opus지만 기본값은 sonnet: claude-opus-4-8은 temperature를 거부(400)하고, opus-4-6은 긴 답변이
+    # chat_service의 LLM 타임아웃 30초를 자주 넘긴다(2026-10-18 실측 29~90초, sonnet-4-6은 16~21초)
+    claude_model_opus: str = "claude-sonnet-4-6"
     claude_model_haiku: str = "claude-haiku-4-5-20251001"
 
     # 캐시 설정
